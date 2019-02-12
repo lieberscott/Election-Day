@@ -9,6 +9,7 @@ const passport = require("passport");
 const mongoose = require('mongoose');
 const mongo = require('mongodb').MongoClient;
 const ObjectId = require('mongodb').ObjectID;
+const Negronuser = require("./models/negronuser.js");
 
 // const Mendoza = require('./models/Mendoza.js');
 
@@ -70,6 +71,55 @@ module.exports = (app, db) => {
       app.get("/logout", (req, res) => {
         req.logout();
         res.redirect("/login");
+      });
+      
+      app.get("/register", (req, res) => {
+        res.render(process.cwd() + "/views/register.pug");
+      });
+      
+      app.post("/register", (req, res) => {
+        
+        let email = req.body.email;
+        let pass = req.body.password;
+        let ward = req.body.ward;
+        let precinct = req.body.precinct;
+        
+        console.log(email, pass, ward, precinct);
+        
+        // check if email is already registered
+        Negronuser.findOne({ email: email })
+        .exec()
+        .then((user) => {
+          if (user) {
+            return res.status(422).json({ message: "email already exists" });
+          }
+          else {
+            bcrypt.genSalt(10, (err, salt) => {
+
+              bcrypt.hash(pass, salt, (error, hash) => {
+                if (error) { console.log(error); }
+                else {
+                  const user = new Negronuser({
+                    email: email,
+                    password: hash,
+                    ward: ward,
+                    precinct: precinct
+                  });
+                  user.save()
+                  .then((result) => {
+                    console.log(result);
+                    // res.status(201).json({ message: "User created" });
+                    res.redirect("/");
+                  })
+                  .catch((error) => {
+                    console.log(error);
+                    res.status(500).json({ error : error });
+                  })
+                }
+              });
+            })
+          }
+        })
       });
 
       
