@@ -20,12 +20,15 @@ html
       each item, i in arr
         div(id="section" + (i + 1))
           div.font-weight-bold
-            i.far.fa-times-circle(id=(item._id))
+            button.far.fa-times-circle(id=(item._id))
           div.row
-            div.col-md-4=item.firstname
-            div.col-md-4=item.lastname
-            div.col-md-4=item.address
+            div.col-4=item.firstname
+            div.col-4=item.lastname
+            div.col-4=item.address
         hr
+
+      button
+        a(href="/logout") Logout
 
 
       footer Made with Glitch!

@@ -7,7 +7,12 @@ body {
   margin: 2em;
 }
 
-button {
+a, u {
+  color: black !important;
+  text-decoration: none !important;
+}
+
+/* button {
   font-size: 16px;
   border-radius: 3px;
   background-color: lightgrey;
@@ -22,11 +27,16 @@ button:hover {
 
 button:active {
   box-shadow: none;
-}
+} */
 
-i {
+/* button {
   float: right;
   margin-left: 10px;
+} */
+
+input, button.far, submit {
+  border: none;
+  float: right;
 }
 
 .add {
