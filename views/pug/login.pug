@@ -21,13 +21,8 @@ html(lang="en")
         h3 Negron Pollwatcher Login
         div.form
           form.login-form(method="POST" action="/login")
-            input(name="ward" type="text" placeholder="ward")
-            input(name="precinct" type="text" placeholder="precinct")
             input(name="username" type="text" placeholder="user")
             input(name="password" type="password" placeholder="password")
             button(type=submit) Login
             p.message Not registered? 
               a(href="/register") Create an account
-
-    a(href="/")
-      button /home

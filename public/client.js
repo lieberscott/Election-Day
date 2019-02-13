@@ -54,7 +54,7 @@ $(document).on("click", ".fa-times-circle", (e) => {
     sectionToHide.remove();
     
     $.ajax({
-      url: "/delete",
+      url: "/voted",
       data: { clickedId },
       success: () => { console.log("success") },
       failure: () => { console.log("failure") }

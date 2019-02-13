@@ -1,7 +1,7 @@
 const LocalStrategy = require("passport-local").Strategy;
 const bcrypt = require("bcryptjs");
 const mongoose = require('mongoose');
-const User = require('./models/user.js');
+const Negronuser = require('./models/negronuser.js');
 
 mongoose.connect(process.env.DATABASE, { useNewUrlParser: true, useCreateIndex: true });
 mongoose.Promise = global.Promise;
@@ -13,7 +13,7 @@ module.exports = (passport) => {
     
     let query = { email: email };
     
-    User.findOne(query, (err, user) => {
+    Negronuser.findOne(query, (err, user) => {
       if (err) { console.log(err); }
       if (!user) {
         console.log("no user found");
@@ -25,7 +25,7 @@ module.exports = (passport) => {
         if (error) { console.log(error); }
         else {
           if (isMatch) {
-
+            console.log(user);
             return done(null, user);
           }
           else {
@@ -44,7 +44,7 @@ module.exports = (passport) => {
   
   passport.deserializeUser((id, done) => {
     console.log("deserialize user called");
-    User.findById(id, (err, user) => {
+    Negronuser.findById(id, (err, user) => {
       done(err, user);
     });
   });
