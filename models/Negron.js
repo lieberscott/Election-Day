@@ -9,7 +9,8 @@ const negronSchema = mongoose.Schema({
   state: { type: String, required: true },
   zip: { type: Number, required: true },
   ward: { type: Number, required: true },
-  precinct: { type: Number, required: true }
+  precinct: { type: Number, required: true },
+  voted: { type: Boolean, required: true }
 });
 
 module.exports = mongoose.model('Negron', negronSchema);

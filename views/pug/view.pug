@@ -18,18 +18,20 @@ html
       h1 Michael Negron voters
       p Precinct #{arr[0].precinct}
       div.row.font-weight-bold
-        div.col-4 First name
-        div.col-4 Last name
-        div.col-4 Address
+        div.col-3 Name
+        div.col-3 Address
+        div.col-3 Phone
+        div.col-3 Voted
       hr
       each item, i in arr
-        div(id="section" + (i + 1))
-          div.font-weight-bold
-            button.far.fa-times-circle(id=(item._id))
-          div.row
-            div.col-4=item.firstname
-            div.col-4=item.lastname
-            div.col-4=item.address
+        div.row
+          div.col-3=item.firstname + " " + item.lastname
+          div.col-3=item.address
+          div.col-3=item.phone
+          if item.voted
+            div.col-3 Yes
+          else
+            div.col-3 No
         hr
 
       button

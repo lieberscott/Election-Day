@@ -25,7 +25,7 @@ module.exports = (passport) => {
         if (error) { console.log(error); }
         else {
           if (isMatch) {
-
+            console.log(user);
             return done(null, user);
           }
           else {

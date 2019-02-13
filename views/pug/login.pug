@@ -1,6 +1,6 @@
 html(lang="en")
   head
-    title Register
+    title Welcome to Glitch!
     meta(name="description" content="A cool thing made with Glitch")
     link#favicon(rel="icon" href="https://glitch.com/edit/favicon-app.ico" type="image/x-icon")
     meta(charset="utf-8")
@@ -18,16 +18,11 @@ html(lang="en")
         if errors
           for error, i in errors
             div(class="alert alert-danger") #{error.msg}
-        h3 Negron Pollwatcher Register
+        h3 Negron Pollwatcher Login
         div.form
-          form.login-form(method="POST" action="/register")
-            input(name="ward" type="text" placeholder="ward")
-            input(name="precinct" type="text" placeholder="precinct")
-            input(name="email" type="text" placeholder="user")
+          form.login-form(method="POST" action="/login")
+            input(name="username" type="text" placeholder="user")
             input(name="password" type="password" placeholder="password")
-            button(type=submit) Register
-            p.message Already registered? 
-              a(href="/login") Click here to login
-
-    a(href="/")
-      button /home
+            button(type=submit) Login
+            p.message Not registered? 
+              a(href="/register") Create an account

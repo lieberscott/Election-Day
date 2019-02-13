@@ -11,8 +11,6 @@ const mongo = require('mongodb').MongoClient;
 const ObjectId = require('mongodb').ObjectID;
 const Negronuser = require("./models/negronuser.js");
 
-// const Mendoza = require('./models/Mendoza.js');
-
 module.exports = (app, db) => {
   
   mongo.connect(process.env.DATABASE, (err, client) => {
@@ -23,30 +21,24 @@ module.exports = (app, db) => {
       let db = client.db('freecodecamp2018');
 
       app.get('/', mainpageMiddleware, (req, res) => {
-        console.log(req.body.ward);
-        db.collection('negron').find( { }, {sort: { lastname: 1 } }, (err, cursor) => {
+        let ward = req.user.ward;
+        let precinct = req.user.precinct;
+        db.collection('negron').find( { ward: ward, precinct: precinct, voted: 0 }, { sort: { lastname: 1 } }, (err, cursor) => {
           if (err) { console.log(err); }
           else {
             let arr = [];
             cursor.toArray()
               .then((docs) => {
-                for (let doc of docs) {
-                  let obj = {};
-                  obj.lastname = doc.lastname;
-                  obj.firstname = doc.firstname;
-                  obj.address = doc.address;
-                  obj._id = doc._id;
-                  arr.push(obj);
-                }
+                arr = docs;
               res.render(process.cwd() + '/views/pug/index', { arr });
             });
           }
         });
       });
-
-
-      app.get("/delete", (req, res) => {
-        db.collection('negron').deleteOne({ _id: ObjectId(req.query.clickedId) }, true, (err, doc) => {
+      
+      
+      app.get("/voted", (req, res) => {
+        db.collection('negron').findOneAndUpdate({ _id: ObjectId(req.query.clickedId) }, { $set: { voted : true } }, (err, doc) => {
           if (err) { console.log(err) }
           else {
             console.log("success : ", err);
@@ -56,17 +48,29 @@ module.exports = (app, db) => {
 
 
       app.get('/login', loginpageMiddleware, (req, res, next) => {
-        res.render(process.cwd() + "/views/login.pug");
+        res.render(process.cwd() + "/views/pug/login.pug");
       });
 
 
-      app.post('/login', (req, res, next) => {
-        passport.authenticate("local", {
-          successRedirect: "/",
-          failureRedirect: "/login",
-          failureFlash: true
-        })(req, res, next);
-      });
+      // app.post('/login', (req, res, next) => {
+      //   passport.authenticate("local", {
+      //     successRedirect: "/",
+      //     failureRedirect: "/login",
+      //     failureFlash: true
+      //   })(req, res, next);
+      // });
+      
+      app.post('/login', passport.authenticate("local", { failureRedirect: "/login" }), (req, res) => {
+          if (req.user.email == "admin") {
+            console.log("admin");
+            res.redirect('/admin');
+          }
+          else if (req.user.email) {
+            console.log("email");
+            res.redirect('/');
+          }
+        });
+      
 
       app.get("/logout", (req, res) => {
         req.logout();
@@ -74,7 +78,7 @@ module.exports = (app, db) => {
       });
       
       app.get("/register", (req, res) => {
-        res.render(process.cwd() + "/views/register.pug");
+        res.render(process.cwd() + "/views/pug/register.pug");
       });
       
       app.post("/register", (req, res) => {
@@ -121,6 +125,46 @@ module.exports = (app, db) => {
           }
         })
       });
+      
+      app.get("/admin", (req, res) => {
+        
+        let x = db.collection("negron").aggregate([
+          { $match : { } },
+          // sorts by precinct, and gets number who voted and who haven't voted
+          { $group : { _id: "$precinct", voted: { $sum: { $cond: ["$voted", 1, 0 ] } }, notvoted: { $sum: { $cond: ["$voted", 0, 1 ] } } } },
+          { $sort: { _id: 1 } }
+        ], (err, cursor) => {
+          if (err) { console.log(err); }
+          else {
+            let arr;
+            cursor.toArray()
+            .then((docs) => {
+              arr = docs;
+              let count = 0;
+              res.render(process.cwd() + '/views/pug/admin', { arr, count });
+            });
+          }
+        });
+
+      });
+      
+      app.get("/view/:precinct", (req, res) => {
+        
+        // convert param from string into a number
+        let precinct = Number(req.params.precinct);
+        
+        db.collection('negron').find({ precinct }, { sort: { voted: 1 } }, (err, cursor) => {
+          if (err) { console.log(err); }
+          else {
+            let arr = [];
+            cursor.toArray()
+              .then((docs) => {
+                arr = docs;
+              res.render(process.cwd() + '/views/pug/view', { arr });
+            });
+          }
+        })
+      })
 
       
       // app.get("/upload", (req, res) => {
@@ -128,7 +172,7 @@ module.exports = (app, db) => {
       //     if (err) { console.log(err) }
       //     else {
       //       console.log("success!");
-      //       res.render(process.cwd() + "/views/login.pug");
+      //       res.render(process.cwd() + "/views/pug/login.pug");
       //     }
       //   })
       // });
@@ -149,6 +193,7 @@ const loginpageMiddleware = (req, res, next) => {
 // only for "/" page (if person is not logged in, it will redirect to login page rather than render main page)
 const mainpageMiddleware = (req, res, next) => {
   if (req.isAuthenticated()) {
+    console.log(req.user.email);
     next();
   }
   else {

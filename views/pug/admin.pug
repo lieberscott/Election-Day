@@ -1,6 +1,6 @@
 html
   head
-    title Welcome to Glitch!
+    title Admin page
     meta(name="description" content="A cool thing made with Glitch")
     link#favicon(rel="icon" href="https://glitch.com/edit/favicon-app.ico" type="image/x-icon")
     meta(charset="utf-8")
@@ -16,20 +16,21 @@ html
   body
     div.container
       h1 Michael Negron voters
-      p Precinct #{arr[0].precinct}
+      - let date = new Date()
+      p Number of people who have voted and not voted as of #{date}
       div.row.font-weight-bold
-        div.col-4 First name
-        div.col-4 Last name
-        div.col-4 Address
+        div.col-3 Precinct
+        div.col-3 Voted
+        div.col-3 Not voted
       hr
       each item, i in arr
-        div(id="section" + (i + 1))
-          div.font-weight-bold
-            button.far.fa-times-circle(id=(item._id))
-          div.row
-            div.col-4=item.firstname
-            div.col-4=item.lastname
-            div.col-4=item.address
+        div.row
+          div.col-3 Precinct #{item._id}
+          div.col-3=item.voted
+          div.col-3=item.notvoted
+          div.col-3
+            button
+              a(target="_blank" href="/view/" + item._id) View
         hr
 
       button
