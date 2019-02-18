@@ -18,11 +18,8 @@ html(lang="en")
         if errors
           for error, i in errors
             div(class="alert alert-danger") #{error.msg}
-        h3 Login
+        h3 Please enter your first and last name
         div.form
-          form.login-form(method="POST" action="/login")
-            input(name="username" type="text" placeholder="user")
-            input(name="password" type="password" placeholder="password")
-            button(type=submit) Login
-            p.message Not registered? 
-              a(href="/register") Create an account
+          form.login-form(method="POST" action="/name")
+            input(name="name" type="text" placeholder="Please enter your first and last name")
+            button(type=submit) Enter
