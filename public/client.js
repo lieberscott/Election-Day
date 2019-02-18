@@ -33,6 +33,8 @@ $(document).on("click", ".fa-times-circle", (e) => {
 
   // STEP 1: HIDE the element (so user can undo the "deletion"),
   let clickedId = e.target.id;
+  console.log(e.target);
+  let pollwatcher = e.target.getAttribute("data-pollwatcher");
   let sectionToHide = $("#" + clickedId).parentsUntil(".container");
   console.log(sectionToHide);
   sectionToHide.hide();
@@ -55,11 +57,11 @@ $(document).on("click", ".fa-times-circle", (e) => {
     
     $.ajax({
       url: "/voted",
-      data: { clickedId },
+      data: { clickedId, pollwatcher },
       success: () => { console.log("success") },
       failure: () => { console.log("failure") }
     });
-  }, 4000);
+  }, 5000);
   
 });
 

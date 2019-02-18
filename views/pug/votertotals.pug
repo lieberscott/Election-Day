@@ -1,6 +1,6 @@
 html
   head
-    title Admin page
+    title Voter Totals page
     meta(name="description" content="A cool thing made with Glitch")
     link#favicon(rel="icon" href="https://glitch.com/edit/favicon-app.ico" type="image/x-icon")
     meta(charset="utf-8")
@@ -16,35 +16,36 @@ html
   body
     div.container
       button
-        a(href="/votertotals") See vote totals
+        a(href="/logout") Logout
       h1 Voters
-      - let tempdate = new Date().toString().split("GMT+0000 (UTC)")[0].split(" 2019");
-      - let d = tempdate[1].split(":");
-      - let time = Number(d[0]);
-      - let t;
-      - if (time >= 7) { t = time - 6; }
-      - else if (time == 0) { t = 6 }
-      - else if (time == 1) { t = 7 }
-      - else if (time == 2) { t = 8 }
-      - else if (time == 3) { t = 9 }
-      - else if (time == 4) { t = 10 }
-      - else if (time == 5) { t = 11 }
-      - else if (time == 6) { t = 12 }
-      - let date = tempdate[0] + ", 2019, " + t + ":" + d[1] + ":" + d[2];
       p Number of your supporters who have voted and not voted as of #{date}
       div.row.font-weight-bold
-        div.col-3 Precinct
-        div.col-3 Voted
-        div.col-3 Not voted
+        div.col-1 Precinct
+        div.col-1 Dordek
+        div.col-1 Jenkins
+        div.col-1 Kastafaros
+        div.col-1 Ladien
+        div.col-1 Maloney
+        div.col-1 Martin
+        div.col-1 Negron
+        div.col-1 Schwartzers
+        div.col-1 Kitzes
+        div.col-1 Reported by
       hr
       each item, i in arr
         div.row
-          div.col-3 Precinct #{item._id}
-          div.col-3=item.voted
-          div.col-3=item.notvoted
-          div.col-3
-            button
-              a(target="_blank" href="/view/" + item._id) View
+          div.col-1=item.precinct
+          div.col-1=item.dordek
+          div.col-1=item.jenkins
+          div.col-1=item.kastafaros
+          div.col-1=item.ladien
+          div.col-1=item.maloney
+          div.col-1=item.martin
+          div.col-1=item.negron
+          div.col-1=item.schwartzers
+          div.col-1=item.kitzes
+          div.col-1=item.name
+
         hr
 
       button

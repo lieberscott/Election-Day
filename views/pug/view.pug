@@ -1,6 +1,6 @@
 html
   head
-    title Welcome to Glitch!
+    title Voters
     meta(name="description" content="A cool thing made with Glitch")
     link#favicon(rel="icon" href="https://glitch.com/edit/favicon-app.ico" type="image/x-icon")
     meta(charset="utf-8")
@@ -15,24 +15,41 @@ html
   
   body
     div.container
-      h1 Michael Negron voters
-      p Precinct #{arr[0].precinct}
-      div.row.font-weight-bold
-        div.col-3 Name
-        div.col-3 Address
-        div.col-3 Phone
-        div.col-3 Voted
-      hr
-      each item, i in arr
-        div.row
-          div.col-3=item.firstname + " " + item.lastname
-          div.col-3=item.address
-          div.col-3=item.phone
-          if item.voted
-            div.col-3 Yes
-          else
-            div.col-3 No
-        hr
-
+      h1 Precinct #{arr[0].precinct}
       button
         a(href="/logout") Logout
+      h3 Not yet voted
+      div.row.font-weight-bold
+        div.col-4 Name
+        div.col-4 Address
+        div.col-4 Phone
+      hr
+      each item, i in arr
+        div(id="section" + (i + 1))
+          if !item.voted
+            div.font-weight-bold
+              button.far.fa-times-circle(id=item._id data-pollwatcher=pollwatcher)
+            div.row
+              div.col-4=item.firstname + " " + item.lastname
+              div.col-4=item.address
+              div.col-4=item.phone
+            hr
+      br
+      
+      h3 Already Voted
+      div.row.font-weight-bold
+        div.col-3 Name
+        div.col-2 Address
+        div.col-2 Phone
+        div.col-2 Entered By
+        div.col-3 Date/Time
+      hr
+      each item, i in arr
+        if item.voted
+          div.row
+            div.col-3=item.firstname + " " + item.lastname
+            div.col-2=item.address
+            div.col-2=item.phone
+            div.col-2=item.enteredBy
+            div.col-3=item.date
+          hr

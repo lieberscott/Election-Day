@@ -10,7 +10,8 @@ const negronuserSchema = mongoose.Schema({
   },
   password: { type: String, required: true },
   ward: { type: Number, required: true },
-  precinct: { type: Number, required: true }
+  precinct: { type: Number, required: true },
+  pollwatcher: { type: String, required: false }
 });
 
 module.exports = mongoose.model('Negronuser', negronuserSchema);
