@@ -4,10 +4,9 @@
 
 body {
   font-family: "Benton Sans", "Helvetica Neue", helvetica, arial, sans-serif;
-  margin: 2em;
 }
 
-a, u {
+button a, button u {
   color: black !important;
   text-decoration: none !important;
 }

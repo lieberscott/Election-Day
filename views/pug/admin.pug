@@ -1,51 +1,40 @@
-html
-  head
-    title Admin page
-    meta(name="description" content="A cool thing made with Glitch")
-    link#favicon(rel="icon" href="https://glitch.com/edit/favicon-app.ico" type="image/x-icon")
-    meta(charset="utf-8")
-    meta(http-equiv="X-UA-Compatible" content="IE=edge")
-    meta(name="viewport" content="width=device-width, initial-scale=1")
-    link(rel="stylesheet" href="/style.css")
-    link(rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css")
-    link(rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous")
-    script(src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous")
-    script(src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous")
-    script(src="/client.js" defer)
-  
-  body
-    div.container
-      button
-        a(href="/votertotals") See vote totals
-      h1 Voters
-      - let tempdate = new Date().toString().split("GMT+0000 (UTC)")[0].split(" 2019");
-      - let d = tempdate[1].split(":");
-      - let time = Number(d[0]);
-      - let t;
-      - if (time >= 7) { t = time - 6; }
-      - else if (time == 0) { t = 6 }
-      - else if (time == 1) { t = 7 }
-      - else if (time == 2) { t = 8 }
-      - else if (time == 3) { t = 9 }
-      - else if (time == 4) { t = 10 }
-      - else if (time == 5) { t = 11 }
-      - else if (time == 6) { t = 12 }
-      - let date = tempdate[0] + ", 2019, " + t + ":" + d[1] + ":" + d[2];
-      p Number of your supporters who have voted and not voted as of #{date}
-      div.row.font-weight-bold
-        div.col-3 Precinct
-        div.col-3 Voted
-        div.col-3 Not voted
-      hr
-      each item, i in arr
-        div.row
-          div.col-3 Precinct #{item._id}
-          div.col-3=item.voted
-          div.col-3=item.notvoted
-          div.col-3
-            button
-              a(target="_blank" href="/view/" + item._id) View
-        hr
+extends layout.pug
 
-      button
-        a(href="/logout") Logout
+block extralink
+  link(rel="stylesheet" href="/style.css")
+  
+block extrascript
+  script(src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous")
+  script(src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous")
+  script(src="/client.js" defer)
+  
+block main
+  h1 Voters
+  - let tempdate = new Date().toString().split("GMT+0000 (UTC)")[0].split(" 2019");
+  - let d = tempdate[1].split(":");
+  - let time = Number(d[0]);
+  - let t;
+  - if (time >= 7) { t = time - 6; }
+  - else if (time == 0) { t = 6 }
+  - else if (time == 1) { t = 7 }
+  - else if (time == 2) { t = 8 }
+  - else if (time == 3) { t = 9 }
+  - else if (time == 4) { t = 10 }
+  - else if (time == 5) { t = 11 }
+  - else if (time == 6) { t = 12 }
+  - let date = tempdate[0] + ", 2019, " + t + ":" + d[1] + ":" + d[2];
+  p Number of your supporters who have voted and not voted as of #{date}
+  div.row.font-weight-bold
+    div.col-3 Precinct
+    div.col-3 Voted
+    div.col-3 Not voted
+  hr
+  each item, i in arr
+    div.row
+      div.col-3 Precinct #{item._id}
+      div.col-3=item.voted
+      div.col-3=item.notvoted
+      div.col-3
+        button.view
+          a(target="_blank" href="/view/" + item._id) View
+    hr
