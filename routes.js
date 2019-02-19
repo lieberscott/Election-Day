@@ -9,7 +9,7 @@ const passport = require("passport");
 const mongoose = require('mongoose');
 const mongo = require('mongodb').MongoClient;
 const ObjectId = require('mongodb').ObjectID;
-const Negronuser = require("./models/negronuser.js");
+const Capplemanuser = require("./models/capplemanuser.js");
 
 module.exports = (app, db) => {
   
@@ -23,17 +23,15 @@ module.exports = (app, db) => {
       app.get('/', mainpageMiddleware, (req, res) => {
         let ward = req.user.ward;
         let precinct = req.user.precinct;
-        console.log("user : ", req.user);
-        let pollwatcher = req.user.pollwatcher;
-        console.log("pollwatcher : ", req.user.pollwatcher);
-        db.collection('negron').find( { ward: ward, precinct: precinct, voted: 0 }, { sort: { lastname: 1 } }, (err, cursor) => {
+
+        db.collection('cappleman').find( { ward: ward, precinct: precinct, voted: 0 }, { sort: { lastname: 1 } }, (err, cursor) => {
           if (err) { console.log(err); }
           else {
             let arr = [];
             cursor.toArray()
               .then((docs) => {
                 arr = docs;
-              res.render(process.cwd() + '/views/pug/index', { arr, pollwatcher });
+              res.render(process.cwd() + '/views/pug/index', { arr });
             });
           }
         });
@@ -46,7 +44,6 @@ module.exports = (app, db) => {
         let tempdate= new Date().toString().split("GMT+0000 (UTC)")[0].split(" 2019");
         let d = tempdate[1].split(":");
         let time = Number(d[0]);
-        console.log("time : ", time);
         let t;
         if (time >= 7) { t = time - 6; }
         else if (time == 0) { t = 6 }
@@ -61,7 +58,7 @@ module.exports = (app, db) => {
         
         
         
-        db.collection('negron').findOneAndUpdate({ _id: id }, { $set: { voted : true, enteredBy: pollwatcher, date } }, (err, doc) => {
+        db.collection('cappleman').findOneAndUpdate({ _id: id }, { $set: { voted : true, enteredBy: pollwatcher, date } }, (err, doc) => {
           if (err) { console.log(err) }
           else {
             console.log("success : ", err);
@@ -85,67 +82,47 @@ module.exports = (app, db) => {
       
       app.post('/login', passport.authenticate("local", { failureRedirect: "/login" }), (req, res) => {
           if (req.user.email == "admin") {
-            console.log("admin");
             res.redirect('/admin');
           }
           else if (req.user.email) {
-            console.log("email");
-            res.redirect('/name');
+            res.redirect('/choice');
           }
         });
-      
-      app.get("/name", mainpageMiddleware, (req, res) => {
-        res.render(process.cwd() + "/views/pug/name.pug");
-      });
-      
-      app.post("/name", (req, res) => {
-        console.log(req.body.name);
-        console.log(req.user.email);
-        db.collection('negronusers').findOneAndUpdate({ email: req.user.email }, { $set: { pollwatcher : req.body.name } }, (err, doc) => {
-          if (err) { console.log(err) }
-          else {
-            console.log("success");
-            res.redirect("/choice");
-          }
-        })
-      });
       
       app.get("/choice", mainpageMiddleware, (req, res) => {
         res.render(process.cwd() + "/views/pug/choice.pug");
       });
       
       app.get("/report", mainpageMiddleware, (req, res) => {
-        res.render(process.cwd() + "/views/pug/report.pug");
+        
+        let precinct = req.user.precinct;
+        
+        res.render(process.cwd() + "/views/pug/report.pug", { precinct });
       });
       
       app.post("/report", (req, res) => {
         
         let precinct = req.user.precinct;
-        console.log(precinct);
+        let num = Number(req.body.number);
         
-        let name = req.body.name;
+        let tempdate= new Date().toString().split("GMT+0000 (UTC)")[0].split(" 2019");
+        let d = tempdate[1].split(":");
+        let time = Number(d[0]);
+        let t;
+        if (time >= 7) { t = time - 6; }
+        else if (time == 0) { t = 6 }
+        else if (time == 1) { t = 7 }
+        else if (time == 2) { t = 8 }
+        else if (time == 3) { t = 9 }
+        else if (time == 4) { t = 10 }
+        else if (time == 5) { t = 11 }
+        else if (time == 6) { t = 12 }
+        let date = tempdate[0] + " " + t + ":" + d[1] + ":" + d[2];
         
-        let dordek = Number(req.body.dordek);
-        let jenkins = Number(req.body.jenkins);
-        let ladien = Number(req.body.ladien);
-        let maloney = Number(req.body.maloney);
-        let martin = Number(req.body.martin);
-        let negron = Number(req.body.negron);
-        let schwartzers = Number(req.body.schwartzers);
-        let kitzes = Number(req.body.kitzes);
         
         // check if email is already registered
-        db.collection("negronvoteresults").update({ precinct }, {
-          dordek,
-          jenkins,
-          ladien,
-          maloney,
-          martin,
-          negron,
-          schwartzers,
-          kitzes,
-          name,
-          precinct
+        db.collection("capplemanvoteresults").update({ precinct }, {
+          precinct, num, date
         }, { upsert: true }, (err, doc) => {
           if (err) { console.log(err); }
           else {
@@ -154,15 +131,15 @@ module.exports = (app, db) => {
         })
       });
       
-      app.get("/votertotals", (req, res) => {
-        db.collection('negronvoteresults').find({ }, { sort: { precinct: 1 } }, (err, cursor) => {
+      app.get("/votertotals", adminMiddleware, (req, res) => {
+        db.collection('capplemanvoteresults').find({ }, { sort: { precinct: 1 } }, (err, cursor) => {
           if (err) { console.log(err); }
           else {
             let arr = [];
             cursor.toArray()
               .then((docs) => {
                 arr = docs;
-              res.render(process.cwd() + '/views/pug/votertotals', { arr });
+              res.render(process.cwd() + '/views/pug/votertotals', { arr, admin: true });
             });
           }
         })
@@ -181,10 +158,9 @@ module.exports = (app, db) => {
         let ward = req.body.ward;
         let precinct = req.body.precinct;
         
-        console.log(email, pass, ward, precinct);
         
         // check if email is already registered
-        Negronuser.findOne({ email: email })
+        Capplemanuser.findOne({ email: email })
         .exec()
         .then((user) => {
           if (user) {
@@ -196,7 +172,7 @@ module.exports = (app, db) => {
               bcrypt.hash(pass, salt, (error, hash) => {
                 if (error) { console.log(error); }
                 else {
-                  const user = new Negronuser({
+                  const user = new Capplemanuser({
                     email: email,
                     password: hash,
                     ward: ward,
@@ -229,10 +205,9 @@ module.exports = (app, db) => {
         let ward = req.body.ward;
         let precinct = req.body.precinct;
         
-        console.log(email, pass, ward, precinct);
         
         // check if email is already registered
-        Negronuser.findOne({ email: email })
+        Capplemanuser.findOne({ email: email })
         .exec()
         .then((user) => {
           if (user) {
@@ -244,7 +219,7 @@ module.exports = (app, db) => {
               bcrypt.hash(pass, salt, (error, hash) => {
                 if (error) { console.log(error); }
                 else {
-                  const user = new Negronuser({
+                  const user = new Capplemanuser({
                     email: email,
                     password: hash,
                     ward: ward,
@@ -269,7 +244,7 @@ module.exports = (app, db) => {
       
       app.get("/admin", adminMiddleware, (req, res) => {
         
-        let x = db.collection("negron").aggregate([
+        let x = db.collection("cappleman").aggregate([
           { $match : { } },
           // sorts by precinct, and gets number who voted and who haven't voted
           { $group : { _id: "$precinct", voted: { $sum: { $cond: ["$voted", 1, 0 ] } }, notvoted: { $sum: { $cond: ["$voted", 0, 1 ] } } } },
@@ -282,7 +257,7 @@ module.exports = (app, db) => {
             .then((docs) => {
               arr = docs;
               let count = 0;
-              res.render(process.cwd() + '/views/pug/admin', { arr, count });
+              res.render(process.cwd() + '/views/pug/admin', { arr, count, admin: true  });
             });
           }
         });
@@ -294,14 +269,14 @@ module.exports = (app, db) => {
         // convert param from string into a number
         let precinct = Number(req.params.precinct);
         
-        db.collection('negron').find({ precinct }, { sort: { voted: 1, date: -1 } }, (err, cursor) => {
+        db.collection('cappleman').find({ precinct }, { sort: { voted: 1, date: -1 } }, (err, cursor) => {
           if (err) { console.log(err); }
           else {
             let arr = [];
             cursor.toArray()
               .then((docs) => {
                 arr = docs;
-              res.render(process.cwd() + '/views/pug/view', { arr });
+              res.render(process.cwd() + '/views/pug/view', { arr, admin: true });
             });
           }
         })
@@ -309,7 +284,7 @@ module.exports = (app, db) => {
 
       
       // app.get("/upload", (req, res) => {
-      //   db.collection('negron').insertMany([], (err, doc) => {
+      //   db.collection('cappleman').insertMany([], (err, doc) => {
       //     if (err) { console.log(err) }
       //     else {
       //       console.log("success!");
@@ -333,8 +308,11 @@ const loginpageMiddleware = (req, res, next) => {
 
 // only for "/" page (if person is not logged in, it will redirect to login page rather than render main page)
 const mainpageMiddleware = (req, res, next) => {
-  if (req.isAuthenticated()) {
-    console.log(req.user.email);
+  if (req.user && req.user.email == "admin") {
+    res.redirect("/admin");
+  }
+  
+  else if (req.isAuthenticated()) {
     next();
   }
   else {
@@ -344,7 +322,7 @@ const mainpageMiddleware = (req, res, next) => {
 
 // only for "/" page (if person is not logged in, it will redirect to login page rather than render main page)
 const adminMiddleware = (req, res, next) => {
-  if (req.user.email == "admin") {
+  if (req.user && req.user.email == "admin") {
     next();
   }
   else {

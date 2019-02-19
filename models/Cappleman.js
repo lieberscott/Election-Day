@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 // keeping it basic for now
-const negronSchema = mongoose.Schema({
+const capplemanSchema = mongoose.Schema({
   lastname: { type: String, required: true },
   firstname: { type: String, required: true },
   address: { type: String, required: true },
@@ -14,4 +14,4 @@ const negronSchema = mongoose.Schema({
   enteredBy: { type: String, required: false }
 });
 
-module.exports = mongoose.model('Negron', negronSchema);
+module.exports = mongoose.model('Cappleman', capplemanSchema);
