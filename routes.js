@@ -9,7 +9,7 @@ const passport = require("passport");
 const mongoose = require('mongoose');
 const mongo = require('mongodb').MongoClient;
 const ObjectId = require('mongodb').ObjectID;
-const Capplemanuser = require("./models/capplemanuser.js");
+const Siawuser = require("./models/siawuser.js");
 
 module.exports = (app, db) => {
   
@@ -24,13 +24,15 @@ module.exports = (app, db) => {
         let ward = req.user.ward;
         let precinct = req.user.precinct;
 
-        db.collection('cappleman').find( { ward: ward, precinct: precinct, voted: 0 }, { sort: { lastname: 1 } }, (err, cursor) => {
+        db.collection('siaw').find( { ward: ward, precinct: precinct, voted: 0 }, { sort: { lastname: 1 } }, (err, cursor) => {
           if (err) { console.log(err); }
           else {
             let arr = [];
             cursor.toArray()
               .then((docs) => {
                 arr = docs;
+              console.log("docs : ", docs);
+              console.log("arr : ", arr);
               res.render(process.cwd() + '/views/pug/index', { arr });
             });
           }
@@ -58,7 +60,7 @@ module.exports = (app, db) => {
         
         
         
-        db.collection('cappleman').findOneAndUpdate({ _id: id }, { $set: { voted : true, enteredBy: pollwatcher, date } }, (err, doc) => {
+        db.collection('siaw').findOneAndUpdate({ _id: id }, { $set: { voted : true, enteredBy: pollwatcher, date } }, (err, doc) => {
           if (err) { console.log(err) }
           else {
             console.log("success : ", err);
@@ -121,7 +123,7 @@ module.exports = (app, db) => {
         
         
         // check if email is already registered
-        db.collection("capplemanvoteresults").update({ precinct }, {
+        db.collection("siawvoteresults").update({ precinct }, {
           precinct, num, date
         }, { upsert: true }, (err, doc) => {
           if (err) { console.log(err); }
@@ -132,7 +134,7 @@ module.exports = (app, db) => {
       });
       
       app.get("/votertotals", adminMiddleware, (req, res) => {
-        db.collection('capplemanvoteresults').find({ }, { sort: { precinct: 1 } }, (err, cursor) => {
+        db.collection('siawvoteresults').find({ }, { sort: { precinct: 1 } }, (err, cursor) => {
           if (err) { console.log(err); }
           else {
             let arr = [];
@@ -160,7 +162,7 @@ module.exports = (app, db) => {
         
         
         // check if email is already registered
-        Capplemanuser.findOne({ email: email })
+        Siawuser.findOne({ email: email })
         .exec()
         .then((user) => {
           if (user) {
@@ -172,7 +174,7 @@ module.exports = (app, db) => {
               bcrypt.hash(pass, salt, (error, hash) => {
                 if (error) { console.log(error); }
                 else {
-                  const user = new Capplemanuser({
+                  const user = new Siawuser({
                     email: email,
                     password: hash,
                     ward: ward,
@@ -207,7 +209,7 @@ module.exports = (app, db) => {
         
         
         // check if email is already registered
-        Capplemanuser.findOne({ email: email })
+        Siawuser.findOne({ email: email })
         .exec()
         .then((user) => {
           if (user) {
@@ -219,7 +221,7 @@ module.exports = (app, db) => {
               bcrypt.hash(pass, salt, (error, hash) => {
                 if (error) { console.log(error); }
                 else {
-                  const user = new Capplemanuser({
+                  const user = new Siawuser({
                     email: email,
                     password: hash,
                     ward: ward,
@@ -244,7 +246,7 @@ module.exports = (app, db) => {
       
       app.get("/admin", adminMiddleware, (req, res) => {
         
-        let x = db.collection("cappleman").aggregate([
+        let x = db.collection("siaw").aggregate([
           { $match : { } },
           // sorts by precinct, and gets number who voted and who haven't voted
           { $group : { _id: "$precinct", voted: { $sum: { $cond: ["$voted", 1, 0 ] } }, notvoted: { $sum: { $cond: ["$voted", 0, 1 ] } } } },
@@ -269,7 +271,7 @@ module.exports = (app, db) => {
         // convert param from string into a number
         let precinct = Number(req.params.precinct);
         
-        db.collection('cappleman').find({ precinct }, { sort: { voted: 1, date: -1 } }, (err, cursor) => {
+        db.collection('siaw').find({ precinct }, { sort: { voted: 1, date: -1 } }, (err, cursor) => {
           if (err) { console.log(err); }
           else {
             let arr = [];
@@ -284,7 +286,7 @@ module.exports = (app, db) => {
 
       
       // app.get("/upload", (req, res) => {
-      //   db.collection('cappleman').insertMany([], (err, doc) => {
+      //   db.collection('siaw').insertMany([], (err, doc) => {
       //     if (err) { console.log(err) }
       //     else {
       //       console.log("success!");

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 // keeping it basic for now
-const capplemanSchema = mongoose.Schema({
+const siawSchema = mongoose.Schema({
   lastname: { type: String, required: true },
   firstname: { type: String, required: true },
   address: { type: String, required: true },
@@ -14,4 +14,4 @@ const capplemanSchema = mongoose.Schema({
   enteredBy: { type: String, required: false }
 });
 
-module.exports = mongoose.model('Cappleman', capplemanSchema);
+module.exports = mongoose.model('Siaw', siawSchema);
