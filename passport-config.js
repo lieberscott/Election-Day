@@ -1,7 +1,7 @@
 const LocalStrategy = require("passport-local").Strategy;
 const bcrypt = require("bcryptjs");
 const mongoose = require('mongoose');
-const Capplemanuser = require('./models/capplemanuser.js');
+const Siawuser = require('./models/siawuser.js');
 
 mongoose.connect(process.env.DATABASE, { useNewUrlParser: true, useCreateIndex: true });
 mongoose.Promise = global.Promise;
@@ -13,7 +13,7 @@ module.exports = (passport) => {
     
     let query = { email: email };
     
-    Capplemanuser.findOne(query, (err, user) => {
+    Siawuser.findOne(query, (err, user) => {
       if (err) { console.log(err); }
       if (!user) {
         console.log("no user found");
@@ -44,7 +44,7 @@ module.exports = (passport) => {
   
   passport.deserializeUser((id, done) => {
     console.log("deserialize user called");
-    Capplemanuser.findById(id, (err, user) => {
+    Siawuser.findById(id, (err, user) => {
       done(err, user);
     });
   });

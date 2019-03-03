@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 // keeping it basic for now
-const capplemanuserSchema = mongoose.Schema({
+const siawuserSchema = mongoose.Schema({
   email: {
     type: String,
     required: true,
@@ -14,4 +14,4 @@ const capplemanuserSchema = mongoose.Schema({
   pollwatcher: { type: String, required: false }
 });
 
-module.exports = mongoose.model('Capplemanuser', capplemanuserSchema);
+module.exports = mongoose.model('Siawuser', siawuserSchema);
