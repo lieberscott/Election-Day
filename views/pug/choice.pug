@@ -1,7 +1,6 @@
 extends layout.pug
 
 block extralink
-  link(rel="stylesheet" href="/loginstyle.css")
 
 block extrascript
   script(src="https://code.jquery.com/jquery-3.3.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous")
@@ -21,3 +20,36 @@ block main
         a(href="/") Pollwatcher
       button
         a(href="/report") Report Voter Numbers
+    form(action="/addfile" method="POST" enctype="multipart/form-data")
+      div #{typeof msg != 'undefined' ? msg : ""}
+      input#myFile(type="file" name="file")
+      button(type="submit") Upload File
+    if file
+      - let keys = Object.keys(file[0]);
+      - let n = 0;
+      div Make sure you're file looks like this
+      div.row
+        div.col-1 lastname
+        div.col-1 firstname
+        div.col-1 address
+        div.col-1 phone
+        div.col-1 ward
+        div.col-1 precinct
+        div.col-1 voted
+      hr
+      
+      div My data is correct
+        form(action="/addtomongo" method="GET")
+          button(type="submit") Add to Database
+      
+      div.row
+        each item in keys
+          div(class="col-1")= item
+      hr
+      while n < 10
+        div.row
+          each item in keys
+            div(class="col-1")=file[n][item]
+          div(class="col-1")=n
+        hr
+        - n++;
