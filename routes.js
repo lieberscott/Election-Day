@@ -11,6 +11,29 @@ const mongo = require('mongodb').MongoClient;
 const ObjectId = require('mongodb').ObjectID;
 const Siawuser = require("./models/siawuser.js");
 
+const multer = require("multer");
+const csv = require("csvtojson");
+
+const parserParams = {
+  delimiter: ";"
+}
+
+const storage = multer.diskStorage({
+  destination: "public/uploads",
+  filename: (req, file, cb) => {
+    cb(null, file.fieldname + "-" + Date.now() + path.extname(file.originalname))
+  }
+})
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 10000000 }, // fileSize limit is set at 10MB
+  fileFilter: (req, file, cb) => { path.extname(file.originalname) == ".csv" ? cb(null, true) : cb("Must be a .csv file") }
+}).single("file");
+
+let filename;
+
+
 module.exports = (app, db) => {
   
   mongo.connect(process.env.DATABASE, (err, client) => {
@@ -20,7 +43,11 @@ module.exports = (app, db) => {
 
       let db = client.db('freecodecamp2018');
 
-      app.get('/', mainpageMiddleware, (req, res) => {
+      app.get('/', /* mainpageMiddleware, */ (req, res) => {
+        
+        res.redirect("/admin");
+        
+        /*
         let ward = req.user.ward;
         let precinct = req.user.precinct;
 
@@ -36,6 +63,48 @@ module.exports = (app, db) => {
               res.render(process.cwd() + '/views/pug/index', { arr });
             });
           }
+        }); */
+      });
+      
+      app.post("/addfile", (req, res) => {
+        upload(req, res, (err) => {
+          if (err) {
+            console.log(err);
+            res.render(process.cwd() + "/views/pug/choice.pug", { msg: err });
+          }
+          else {
+            if (req.file == undefined) {
+              res.render(process.cwd() + "/views/pug/choice.pug", { msg: "Error: No file selected" });
+            }
+            else {
+              const csvFilePath = "public/uploads/" + req.file.filename;
+              filename = req.file.filename;
+              csv(parserParams)
+              .fromFile(csvFilePath)
+              .then((jsonObj)=> {
+                res.render(process.cwd() + "/views/pug/choice.pug", { msg: "File uploaded", file: jsonObj });
+              });
+
+              // res.render(process.cwd() + "/views/pug/choice.pug", { msg: "File uploaded", file: `uploads/${req.file.filename}` });
+            }
+          }
+        });
+      });
+      
+      app.get("/addtomongo", (req, res) => {
+        const csvFilePath = "public/uploads/" + filename;
+        csv(parserParams)
+        .fromFile(csvFilePath)
+        .then((jsonObj)=> {
+          db.collection('test').insertMany(jsonObj, (err, doc) => {
+            if (err) { console.log(err) }
+            else {
+              console.log("success!");
+              res.render(process.cwd() + "/views/pug/login.pug");
+            }
+          });
+
+          // res.render(process.cwd() + "/views/pug/choice.pug", { msg: "File uploaded", file: jsonObj });
         });
       });
       
@@ -91,7 +160,7 @@ module.exports = (app, db) => {
           }
         });
       
-      app.get("/choice", mainpageMiddleware, (req, res) => {
+      app.get("/choice", /* mainpageMiddleware, */ (req, res) => {
         res.render(process.cwd() + "/views/pug/choice.pug");
       });
       
@@ -244,7 +313,12 @@ module.exports = (app, db) => {
         })
       });
       
-      app.get("/admin", adminMiddleware, (req, res) => {
+      app.get("/admin", /* adminMiddleware, */ (req, res) => {
+        res.render(process.cwd() + '/views/pug/adminpanel', { admin: true  });
+      });
+      
+      
+      app.get("/precincts", /* adminMiddleware, */ (req, res) => {
         
         let x = db.collection("siaw").aggregate([
           { $match : { } },
@@ -259,12 +333,14 @@ module.exports = (app, db) => {
             .then((docs) => {
               arr = docs;
               let count = 0;
-              res.render(process.cwd() + '/views/pug/admin', { arr, count, admin: true  });
+              res.render(process.cwd() + '/views/pug/precincts', { arr, count, admin: true  });
             });
           }
         });
 
       });
+      
+      
       
       app.get("/view/:precinct", adminMiddleware, (req, res) => {
         

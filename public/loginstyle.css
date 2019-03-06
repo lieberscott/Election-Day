@@ -100,8 +100,8 @@
   text-align: center;
 }
 
-body {
-  background: #E8E8E8; /* fallback for old browsers */
+/* body {
+  background: #E8E8E8; /* fallback for old browsers */ /*
   background: -webkit-linear-gradient(right, 	#E8E8E8, 	#E8E8E8);
   background: -moz-linear-gradient(right, #E8E8E8, #E8E8E8);
   background: -o-linear-gradient(right, #E8E8E8, #E8E8E8);
@@ -109,4 +109,4 @@ body {
   font-family: "Roboto", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;      
-}
+} */
