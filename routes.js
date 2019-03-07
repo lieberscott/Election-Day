@@ -10,13 +10,14 @@ const mongoose = require('mongoose');
 const mongo = require('mongodb').MongoClient;
 const ObjectId = require('mongodb').ObjectID;
 const Siawuser = require("./models/siawuser.js");
+const Siaw = require("./models/Siaw.js");
 
 const multer = require("multer");
 const csv = require("csvtojson");
 
-const parserParams = {
-  delimiter: ";"
-}
+// const parserParams = {
+//   delimiter: ";"
+// }
 
 const storage = multer.diskStorage({
   destination: "public/uploads",
@@ -27,7 +28,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 10000000 }, // fileSize limit is set at 10MB
+  limits: { fileSize: 5000000 }, // fileSize limit is set at 5MB
   fileFilter: (req, file, cb) => { path.extname(file.originalname) == ".csv" ? cb(null, true) : cb("Must be a .csv file") }
 }).single("file");
 
@@ -45,7 +46,7 @@ module.exports = (app, db) => {
 
       app.get('/', /* mainpageMiddleware, */ (req, res) => {
         
-        res.redirect("/admin");
+        res.redirect("/upload");
         
         /*
         let ward = req.user.ward;
@@ -66,23 +67,27 @@ module.exports = (app, db) => {
         }); */
       });
       
+      app.get("/upload", (req, res) => {
+        res.render(process.cwd() + "/views/pug/upload.pug", { admin: true });
+      });
+      
       app.post("/addfile", (req, res) => {
         upload(req, res, (err) => {
           if (err) {
             console.log(err);
-            res.render(process.cwd() + "/views/pug/choice.pug", { msg: err });
+            res.render(process.cwd() + "/views/pug/upload.pug", { msg: err });
           }
           else {
             if (req.file == undefined) {
-              res.render(process.cwd() + "/views/pug/choice.pug", { msg: "Error: No file selected" });
+              res.render(process.cwd() + "/views/pug/upload.pug", { msg: "Error: No file selected" });
             }
             else {
               const csvFilePath = "public/uploads/" + req.file.filename;
               filename = req.file.filename;
-              csv(parserParams)
+              csv()
               .fromFile(csvFilePath)
               .then((jsonObj)=> {
-                res.render(process.cwd() + "/views/pug/choice.pug", { msg: "File uploaded", file: jsonObj });
+                res.render(process.cwd() + "/views/pug/upload.pug", { file: jsonObj });
               });
 
               // res.render(process.cwd() + "/views/pug/choice.pug", { msg: "File uploaded", file: `uploads/${req.file.filename}` });
@@ -91,20 +96,49 @@ module.exports = (app, db) => {
         });
       });
       
-      app.get("/addtomongo", (req, res) => {
+      app.post("/addtomongo", (req, res) => {
+        
+        let opt = req.body.radios; // "addto" or "override"
+        
         const csvFilePath = "public/uploads/" + filename;
-        csv(parserParams)
+        csv()
         .fromFile(csvFilePath)
         .then((jsonObj)=> {
-          db.collection('test').insertMany(jsonObj, (err, doc) => {
-            if (err) { console.log(err) }
-            else {
-              console.log("success!");
-              res.render(process.cwd() + "/views/pug/login.pug");
-            }
-          });
+          
+          if (opt == "override") {
+            Siaw.remove({}, (err, removed) => {
+              if (err) { res.render(process.cwd() + "/views/pug/upload.pug", { msg: "Error: Please try again" }); }
+              else {
+                Siaw.insertMany(jsonObj, (err, doc) => {
+                  if (err) {
+                    res.render(process.cwd() + "/views/pug/upload.pug", { msg: "Error: Please try again" });
+                  }
+                  else {
+                    console.log("success!");
+                    res.render(process.cwd() + "/views/pug/upload.pug", { msg: "File uploaded" });
+                  }
+                });
+              }
+            });
+          }
+          
+          else if (opt == "addto") {
+            Siaw.insertMany(jsonObj, { ordered: false }, (err, doc) => {
+              if (err) {
+                if (err.result.result.ok >= 1) { // insertmany had conflicts with van_id, but some items were new
+                  res.render(process.cwd() + "/views/pug/upload.pug", { msg: "File uploaded" });
+                }
+                else { // insertmany had conflicts with van_id, and none of the items were new
+                  res.render(process.cwd() + "/views/pug/upload.pug", { msg: "Error: Please try again" });
+                }
+              }
+              else {
+                console.log("success!");
+                res.render(process.cwd() + "/views/pug/upload.pug", { msg: "File uploaded" });
+              }
+            });
+          }
 
-          // res.render(process.cwd() + "/views/pug/choice.pug", { msg: "File uploaded", file: jsonObj });
         });
       });
       
@@ -202,7 +236,7 @@ module.exports = (app, db) => {
         })
       });
       
-      app.get("/votertotals", adminMiddleware, (req, res) => {
+      app.get("/totals", adminMiddleware, (req, res) => {
         db.collection('siawvoteresults').find({ }, { sort: { precinct: 1 } }, (err, cursor) => {
           if (err) { console.log(err); }
           else {
@@ -210,7 +244,7 @@ module.exports = (app, db) => {
             cursor.toArray()
               .then((docs) => {
                 arr = docs;
-              res.render(process.cwd() + '/views/pug/votertotals', { arr, admin: true });
+              res.render(process.cwd() + '/views/pug/totals', { arr, admin: true });
             });
           }
         })
@@ -314,7 +348,7 @@ module.exports = (app, db) => {
       });
       
       app.get("/admin", /* adminMiddleware, */ (req, res) => {
-        res.render(process.cwd() + '/views/pug/adminpanel', { admin: true  });
+        res.render(process.cwd() + '/views/pug/admin', { admin: true  });
       });
       
       

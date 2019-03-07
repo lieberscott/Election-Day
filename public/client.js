@@ -10,7 +10,7 @@
 //         clearTimeout(2) is called, which cancels the second exout, and restores the information
 
 // STEP 4: say 3 seconds still has not passed, and user wants to undo first exout as well
-//         second undo is pressed
+//         first undo is pressed
 //         the id of the undo button is captured from the click event (1)
 //         clearTimeout(1) is called, which cancels the first exout and restores the information
 
