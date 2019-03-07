@@ -10,10 +10,6 @@ block extrascript
   script(src="/client.js" defer)
 
 block main
-  != messages('messages', local)
-  if errors
-    for error, i in errors
-      div(class="alert alert-danger") #{error.msg}
   h3 Welcome to the Admin Panel
   p This app has everything you need for your Election Day turnout efforts
   
@@ -21,11 +17,11 @@ block main
     div.col-md-6
       div.card
         div.card-body
-          h5.card-title Lists
+          h5.card-title Supporter Lists
           p.card-text Upload a list of supporters you want to turn out. Then you can watch the polls for them to show up, call them directly, or go to their door to get them to the polls. Once they've voted, have your pollwatcher ex them out, and focus on the rest of your list.
           a.btn.btn-primary(href="#") Learn more
         ul.list-group.list-group-flush
-          a(href="#")
+          a(href="/upload")
             li.list-group-item Upload a new list
           a(href="#")
             li.list-group-item View current list
@@ -44,43 +40,3 @@ block main
             li.list-group-item View list of total votes by precicnt
           a(href="#")
             li.list-group-item View results by precinct, by candidate
-          
-
-  div
-    button
-      a(href="/votertotals") Voter Totals
-    button
-      a(href="/admin") Precinct List
-  form(action="/addfile" method="POST" enctype="multipart/form-data")
-    div #{typeof msg != 'undefined' ? msg : ""}
-    input#myFile(type="file" name="file")
-    button(type="submit") Upload File
-  if file
-    - let keys = Object.keys(file[0]);
-    - let n = 0;
-    div Make sure you're file looks like this
-    div.row
-      div.col-1 lastname
-      div.col-1 firstname
-      div.col-1 address
-      div.col-1 phone
-      div.col-1 ward
-      div.col-1 precinct
-      div.col-1 voted
-    hr
-
-    div My data is correct
-      form(action="/addtomongo" method="GET")
-        button(type="submit") Add to Database
-
-    div.row
-      each item in keys
-        div(class="col-1")= item
-    hr
-    while n < 10
-      div.row
-        each item in keys
-          div(class="col-1")=file[n][item]
-        div(class="col-1")=n
-      hr
-      - n++;

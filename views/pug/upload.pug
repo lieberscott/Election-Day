@@ -1,0 +1,91 @@
+extends layout.pug
+
+block extralink
+  link(rel="stylesheet" href="/upload.css")
+
+block extrascript
+  script(src="https://code.jquery.com/jquery-3.3.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous")
+  script(src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous")
+  script(src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous")
+  script(src="/upload.js")
+
+block main
+  != messages('messages', local)
+  if errors
+    for error, i in errors
+      div(class="alert alert-danger") #{error.msg}
+  h5 Upload a new file
+  ul
+    li Document must be in .csv format
+    li Document must have its delimiter be a comma (","), not a semicolon (";"), or the program will not read it
+    li Only first 10 records will show below. To view all click HERE
+    li Limit of 5MB file
+
+  form(action="/addfile" method="POST" enctype="multipart/form-data")
+    p Upload a file of supporters so you know who to target for turnout
+    div #{typeof msg != 'undefined' ? msg : ""}
+    p Step 1:   
+      input#myFile(type="file" name="file")
+    p Step 2: Click 
+      button(type="submit") Upload File
+    p Step 3: Make sure your data is correct (check below)
+  form(action="/addtomongo" method="POST")
+    p Step 4: Click 
+      button#addbutton(type="submit" disabled) Add to Database
+      div.form-check.form-check-inline
+        input.form-check-input(type="radio" name="radios" id="addto" value="addto" checked)
+        label.form-check-label(for="exampleRadios2") Add to current database
+      div.form-check.form-check-inline
+        input.form-check-input(type="radio" name="radios" id="override" value="override")
+        label.form-check-label(for="exampleRadios1") Override current database
+
+
+  p Make sure your .csv file has the following headers exactly like this. If not, correct your .csv and reupload.
+  
+  div.row
+    div.col-1
+    div.col-1 van_id
+    div.col-1 lastname
+    div.col-1 firstname
+    div.col-1 address
+    div.col-1 phone
+    div.col-1 ward
+    div.col-1 precinct
+    div.col-1 voted
+
+  if file
+    - let keys = Object.keys(file[0]);
+    - let n = 0;
+    
+    div.row.text-center
+      div.col-1
+      div.col-1
+        i#van_id.fas.fa-arrow-down
+      div.col-1
+        i#lastname.fas.fa-arrow-down
+      div.col-1
+        i#firstname.fas.fa-arrow-down
+      div.col-1
+        i#address.fas.fa-arrow-down
+      div.col-1
+        i#phone.fas.fa-arrow-down
+      div.col-1
+        i#ward.fas.fa-arrow-down
+      div.col-1
+        i#precinct.fas.fa-arrow-down
+      div.col-1
+        i#voted.fas.fa-arrow-down
+
+    div.row
+      div.col-1
+        i.fas.fa-arrow-right
+      each item in keys
+        div(class="col-1 header")= item
+    hr
+    while n < 10
+      div.row
+        div(class="col-1")=(n+1)
+        each item in keys
+          div(class="col-1")=file[n][item]
+      hr
+      - n++;
