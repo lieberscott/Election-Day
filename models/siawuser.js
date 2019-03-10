@@ -10,8 +10,14 @@ const siawuserSchema = mongoose.Schema({
   },
   password: { type: String, required: true },
   ward: { type: Number, required: true },
-  precinct: { type: Number, required: true },
-  pollwatcher: { type: String, required: false }
+  // precinct: { type: Number, default: -1 },
+  no_of_precincts: { type: Number, required: true },
+  candidate_first: { type: String, required: true },
+  candidate_last: { type: String, required: true },
+  admin: { type: Boolean, required: true, default: true }, // default: true, needs to be changed for pollwatchers
+  paid: { type: Boolean, required: true, default: false },
+  campaigns: [{ database: String, public_name: String }], // database names
+  pollwatcher_name: { type: String, required: false }, // for pollwatchers only, maybe delete from admin schema?
 });
 
 module.exports = mongoose.model('Siawuser', siawuserSchema);

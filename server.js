@@ -8,8 +8,6 @@ const mongoose = require('mongoose');
 const passport = require("passport");
 const session = require("express-session");
 
-mongoose.connect(process.env.DATABASE, { useNewUrlParser: true, useCreateIndex: true });
-mongoose.Promise = global.Promise;
 
 // http://expressjs.com/en/starter/static-files.html
 app.use(express.static("public"));
@@ -32,6 +30,8 @@ app.use((req, res, next) => {
   res.locals.messages = require('express-messages')(req, res);
   next();
 });
+
+app.use(express.json());
 
 // import passport-config file
 require("./passport-config")(passport);

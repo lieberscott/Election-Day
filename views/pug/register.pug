@@ -18,13 +18,29 @@ html(lang="en")
         if errors
           for error, i in errors
             div(class="alert alert-danger") #{error.msg}
-        h3 Pollwatcher Register
+        h3 Election Day App
+        p Ready to register? Fill out the information below accurately. On the next page you will be asked to enter your credit card information.
         div.form
           form.login-form(method="POST" action="/register")
-            input(name="ward" type="text" placeholder="ward")
-            input(name="precinct" type="text" placeholder="precinct")
-            input(name="email" type="text" placeholder="user")
-            input(name="password" type="password" placeholder="password")
+            label(for="email") Email
+            input(name="email" type="text" placeholder="Your email")
+            label(for="password") Password (must be at least 8 characters)
+            input(name="password" type="password" placeholder="Password")
+            label(for="password2") Confirm password
+            input(name="password2" type="password" placeholder="Retype password")
+            label(for="ward") Ward
+            input(name="ward" type="text" placeholder="Ward")
+            label(for="precincts") Precincts
+            input(name="precincts" type="text" placeholder="Number of precincts in ward")
+            label(for="candidatefirst") Candidate's First Name
+            input(name="candidatefirst" type="text" placeholder="Candidate first name")
+            label(for="candidatelast") Candidate's Last Name
+            input(name="candidatelast" type="text" placeholder="Candidate last name")
             button(type=submit) Register
             p.message Already registered? 
               a(href="/login") Click here to login
+    
+    
+    
+    
+    

@@ -12,6 +12,10 @@ const ObjectId = require('mongodb').ObjectID;
 const Siawuser = require("./models/siawuser.js");
 const Siaw = require("./models/Siaw.js");
 
+// Set your secret key: remember to change this to your live secret key in production
+// See your keys here: https://dashboard.stripe.com/account/apikeys
+let stripe = require("stripe")("sk_test_4eC39HqLyjWDarjtT1zdp7dc");
+
 const multer = require("multer");
 const csv = require("csvtojson");
 
@@ -28,7 +32,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 5000000 }, // fileSize limit is set at 5MB
+  limits: { fileSize: 6000000 }, // fileSize limit is set at 5MB
   fileFilter: (req, file, cb) => { path.extname(file.originalname) == ".csv" ? cb(null, true) : cb("Must be a .csv file") }
 }).single("file");
 
@@ -37,7 +41,7 @@ let filename;
 
 module.exports = (app, db) => {
   
-  mongo.connect(process.env.DATABASE, (err, client) => {
+  mongo.connect(process.env.DATABASE, { useNewUrlParser: true }, (err, client) => {
     if(err) { console.log('Database error: ' + err) }
     
     else {
@@ -46,7 +50,7 @@ module.exports = (app, db) => {
 
       app.get('/', /* mainpageMiddleware, */ (req, res) => {
         
-        res.redirect("/upload");
+        res.redirect("/payment");
         
         /*
         let ward = req.user.ward;
@@ -142,6 +146,41 @@ module.exports = (app, db) => {
         });
       });
       
+      app.post("/stripe", (req, res) => {
+
+        // Token is created using Checkout or Elements!
+        // Get the payment token ID submitted by the form:
+        const token = req.body.stripeToken; // Using Express
+
+        (async () => {
+          const charge = await stripe.charges.create({
+            amount: 999,
+            currency: 'usd',
+            description: 'Example charge',
+            source: token,
+          });
+          
+          let id = req.user._id;
+          
+          console.log(charge);
+                    
+          if (charge.paid) {
+            Siawuser.findOneAndUpdate({ _id: id }, { paid: true }, {new: true }, (err, doc) => {
+              if (err) { console.log(err) }
+              else {
+                console.log(doc);
+              }
+            });
+            
+            
+            res.redirect("/admin");
+          }
+          
+        })();
+        
+        
+      });
+      
       
       app.get("/voted", (req, res) => {
         let id = ObjectId(req.query.clickedId);
@@ -185,12 +224,12 @@ module.exports = (app, db) => {
       //   })(req, res, next);
       // });
       
-      app.post('/login', passport.authenticate("local", { failureRedirect: "/login" }), (req, res) => {
-          if (req.user.email == "admin") {
+      app.post('/login', passport.authenticate("local", { failureRedirect: "/register" }), (req, res) => {
+          if (req.user.paid) {
             res.redirect('/admin');
           }
-          else if (req.user.email) {
-            res.redirect('/choice');
+          else {
+            res.redirect('/login');
           }
         });
       
@@ -258,58 +297,36 @@ module.exports = (app, db) => {
       
       app.get("/register", (req, res) => {
         
-        let email = req.body.email;
-        let pass = req.body.password;
-        let ward = req.body.ward;
-        let precinct = req.body.precinct;
-        
-        
-        // check if email is already registered
-        Siawuser.findOne({ email: email })
-        .exec()
-        .then((user) => {
-          if (user) {
-            return res.status(422).json({ message: "email already exists" });
-          }
-          else {
-            bcrypt.genSalt(10, (err, salt) => {
-
-              bcrypt.hash(pass, salt, (error, hash) => {
-                if (error) { console.log(error); }
-                else {
-                  const user = new Siawuser({
-                    email: email,
-                    password: hash,
-                    ward: ward,
-                    precinct: precinct
-                  });
-                  user.save()
-                  .then((result) => {
-                    console.log(result);
-                    // res.status(201).json({ message: "User created" });
-                    res.redirect("/");
-                  })
-                  .catch((error) => {
-                    console.log(error);
-                    res.status(500).json({ error : error });
-                  })
-                }
-              });
-            })
-          }
-        })
-        
         
         res.render(process.cwd() + "/views/pug/register.pug");
       });
       
-      app.post("/register", (req, res) => {
+      app.post("/register", [
+        check('email').isEmail(),
+        // password must be at least 5 chars long
+        check('password').isLength({ min: 1 }),
+        check("password").custom((val, {req, loc, path}) => {
+          if (val !== req.body.password2) {
+              throw new Error("Passwords don't match");
+          }
+          else {
+              return val;
+          }
+        })
+        ],
+        checkValidationResult,
+        (req, res) => {
         
         let email = req.body.email;
         let pass = req.body.password;
+        let pass2 = req.body.password2;
         let ward = req.body.ward;
-        let precinct = req.body.precinct;
+        let precincts = req.body.precincts;
+        let candfirst = req.body.candidatefirst;
+        let candlast = req.body.candidatelast;
         
+        let database = candlast + "-" + Date.now();
+        let campaign = candlast + " for " + ward;
         
         // check if email is already registered
         Siawuser.findOne({ email: email })
@@ -325,26 +342,41 @@ module.exports = (app, db) => {
                 if (error) { console.log(error); }
                 else {
                   const user = new Siawuser({
-                    email: email,
+                    email,
                     password: hash,
-                    ward: ward,
-                    precinct: precinct
+                    ward,
+                    no_of_precincts: precincts,
+                    candidate_first: candfirst,
+                    candidate_last: candlast,
+                    campaigns: [{ database: database, public_name: candlast + " for " + ward }], // database names
                   });
                   user.save()
                   .then((result) => {
                     console.log(result);
-                    // res.status(201).json({ message: "User created" });
-                    res.redirect("/");
+                    req.login(user, (err) => {
+                      if (!err) {
+                        console.log(user);
+                        res.redirect('/payment');
+                      }
+                      else {
+                        console.log(error);
+                        res.status(500).json({ error : error });
+                      }
+                    })
                   })
                   .catch((error) => {
                     console.log(error);
                     res.status(500).json({ error : error });
                   })
-                }
-              });
+                };
+              })
             })
           }
-        })
+        });
+      });
+      
+      app.get("/payment", /* paymentMiddleware, */ (req, res) => {
+        res.render(process.cwd() + '/views/pug/payment');
       });
       
       app.get("/admin", /* adminMiddleware, */ (req, res) => {
@@ -432,12 +464,20 @@ const mainpageMiddleware = (req, res, next) => {
   }
 }
 
-// only for "/" page (if person is not logged in, it will redirect to login page rather than render main page)
+// if person is  logged in, it will redirect to payment page rather than render main page
 const adminMiddleware = (req, res, next) => {
-  if (req.user && req.user.email == "admin") {
+  if (req.user && req.user.paid) {
     next();
   }
   else {
     res.redirect("/login");
   }
+}
+
+const checkValidationResult = (req, res, next) => {
+    const result = validationResult(req);
+    if (result.isEmpty()) {
+        return next();
+    }
+    res.render(process.cwd() + '/views/pug/register', { errors: result.array() });
 }

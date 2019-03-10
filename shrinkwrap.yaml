@@ -16,6 +16,7 @@ dependencies:
   passport: 0.4.0
   passport-local: 1.0.0
   pug: 2.0.3
+  stripe: 6.25.1
 packages:
   /@types/babel-types/7.0.4:
     dev: false
@@ -1587,6 +1588,12 @@ packages:
       node: '>=0.6'
     resolution:
       integrity: sha512-N5ZAX4/LxJmF+7wN74pUD6qAh9/wnvdQcjq9TZjevvXzSUo7bfmw91saqMjzGS2xq91/odN2dW/WOl7qQHNDGA==
+  /qs/6.6.0:
+    dev: false
+    engines:
+      node: '>=0.6'
+    resolution:
+      integrity: sha512-KIJqT9jQJDQx5h5uAVPimw6yVg2SekOKu959OCtktD3FjzbpvaPr8i4zzg07DOMz+igA4W/aNM7OV8H37pFYfA==
   /random-bytes/1.0.0:
     dev: false
     engines:
@@ -1944,6 +1951,17 @@ packages:
       node: '>=0.10.0'
     resolution:
       integrity: sha1-PFMZQukIwml8DsNEhYwobHygpgo=
+  /stripe/6.25.1:
+    dependencies:
+      lodash.isplainobject: 4.0.6
+      qs: 6.6.0
+      safe-buffer: 5.1.2
+      uuid: 3.3.2
+    dev: false
+    engines:
+      node: '>=4'
+    resolution:
+      integrity: sha512-e1FCDQgVWzHcyD3HBzMzl9ilhHyl9g/IFl+YlxGIx6l/5nxa0hLPK8dcHqrFyvJDkob37JzvZBaBrn45hJM7Eg==
   /tar-pack/3.4.1:
     dependencies:
       debug: 2.6.9
@@ -2171,3 +2189,4 @@ specifiers:
   passport: ^0.4.0
   passport-local: ^1.0.0
   pug: ^2.0.3
+  stripe: ^6.25.1
