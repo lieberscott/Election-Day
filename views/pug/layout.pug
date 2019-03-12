@@ -37,6 +37,10 @@ html
               a.nav-link(href="/upload") Upload New List
             li.nav-item.hide
               a.nav-link(href="/") Export Current List
+            li.nav-item.hide
+              a.nav-link(href="/pollwatchers") View Pollwatchers
+            li.nav-item.hide
+              a.nav-link(href="/addpollwatcher") Add Pollwatcher
             li.nav-item
               a.nav-link(href="/logout") Logout
       else
@@ -86,6 +90,14 @@ html
                 a.nav-link(href="#")
                   i.fas.fa-file-export
                   span   Export Current List
+              li.nav-item
+                a.nav-link(href="/pollwatchers")
+                  i.fas.fa-glasses
+                  span   View Pollwatchers
+              li.nav-item
+                a.nav-link(href="/addpollwatcher")
+                  i.fas.fa-plus
+                  span   Add Pollwatcher
               li.nav-item
                 a.nav-link(href="/logout")
                   i.fas.fa-sign-out-alt

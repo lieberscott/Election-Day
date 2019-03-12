@@ -1,0 +1,28 @@
+extends layout.pug
+
+block extralink
+  link(rel="stylesheet" href="/style.css")
+  
+block extrascript
+  script(src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous")
+  script(src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous")
+  
+block main
+  h1 Add pollwatcher
+  form(action="/addpollwatcher" method="POST")
+    div.row
+      div.col
+        label(for="email") Email*
+        input#email.form-control(name="email" type="email" aria-describedby="emailHelp" placeholder="Enter email")
+    div.row
+      div.col
+        label(for="firstname") First name*
+        input#firstname.form-control(name="firstname" type="text" placeholder="First name")
+      div.col
+        label(for="lastname") Last name*
+        input#lastname.form-control(name="lastname" type="text" placeholder="Last name")
+      div.col
+        label(for="precinct") Precinct
+        input#precinct.form-control(name="precinct" type="text" placeholder="Precinct")
+        small#precincthelp.form-text.text-muted You can add this later
+    button.btn.btn-primary(type="submit") Submit

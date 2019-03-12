@@ -3,14 +3,25 @@ const bcrypt = require("bcryptjs");
 const { check, validationResult } = require('express-validator/check');
 const fs = require("fs");
 const jwt = require("jsonwebtoken");
-const nodegit = require("nodegit");
 const path = require("path"); // native to Node
 const passport = require("passport");
 const mongoose = require('mongoose');
 const mongo = require('mongodb').MongoClient;
+const nodemailer = require("nodemailer");
 const ObjectId = require('mongodb').ObjectID;
-const Siawuser = require("./models/siawuser.js");
-const Siaw = require("./models/Siaw.js");
+const randomstring = require("randomstring");
+const Siawuser = require("./models/siawuser.js"); // admins
+const Siaw = require("./models/Siaw.js"); // voters
+const transport = nodemailer.createTransport({
+  service: "Mailgun",
+  auth: {
+    user: process.env.MAILGUN_USER,
+    pass: process.env.MAILGUN_PASS
+  },
+  tls: {
+    rejectUnauthorized: false
+  }
+});
 
 // Set your secret key: remember to change this to your live secret key in production
 // See your keys here: https://dashboard.stripe.com/account/apikeys
@@ -50,7 +61,7 @@ module.exports = (app, db) => {
 
       app.get('/', /* mainpageMiddleware, */ (req, res) => {
         
-        res.redirect("/payment");
+        res.redirect("/login");
         
         /*
         let ward = req.user.ward;
@@ -160,12 +171,12 @@ module.exports = (app, db) => {
             source: token,
           });
           
-          let id = req.user._id;
+          let id = req.user.campaigns[0]._id;
           
           console.log(charge);
                     
           if (charge.paid) {
-            Siawuser.findOneAndUpdate({ _id: id }, { paid: true }, {new: true }, (err, doc) => {
+            db.collection("siawusers").update({ "campaigns._id": id }, { $set: { "campaigns.$.paid": true } }, (err, doc) => {
               if (err) { console.log(err) }
               else {
                 console.log(doc);
@@ -225,13 +236,14 @@ module.exports = (app, db) => {
       // });
       
       app.post('/login', passport.authenticate("local", { failureRedirect: "/register" }), (req, res) => {
-          if (req.user.paid) {
-            res.redirect('/admin');
-          }
-          else {
-            res.redirect('/login');
-          }
-        });
+        // need to check for current_index, and update current_index for all users
+        if (req.user.paid) {
+          res.redirect('/admin');
+        }
+        else {
+          res.redirect('/login');
+        }
+      });
       
       app.get("/choice", /* mainpageMiddleware, */ (req, res) => {
         res.render(process.cwd() + "/views/pug/choice.pug");
@@ -336,23 +348,35 @@ module.exports = (app, db) => {
             return res.status(422).json({ message: "email already exists" });
           }
           else {
+            
             bcrypt.genSalt(10, (err, salt) => {
 
               bcrypt.hash(pass, salt, (error, hash) => {
-                if (error) { console.log(error); }
+                if (error) { console.log("error"); }
                 else {
                   const user = new Siawuser({
                     email,
                     password: hash,
-                    ward,
-                    no_of_precincts: precincts,
-                    candidate_first: candfirst,
-                    candidate_last: candlast,
-                    campaigns: [{ database: database, public_name: candlast + " for " + ward }], // database names
+                    campaigns: [
+                      {
+                        database: database,
+                        public_name: candlast + " for " + ward,
+                        candidate_first: candfirst,
+                        candidate_last: candlast,
+                        ward: ward,
+                        no_of_precincts: precincts,
+                        admin: true
+                      }
+                    ], // database names
                   });
                   user.save()
                   .then((result) => {
                     console.log(result);
+                    console.log("user, : ", user);
+                    console.log("user.campaigns : ", result.campaigns);
+                    console.log("user.campaigns[0] : ", result.campaigns[0]);
+                    console.log("user.campaigns[0]._id : ", result.campaigns[0]._id);
+                    console.log("user.campaigns[0]._id.oid : ", result.campaigns[0]._id.oid);
                     req.login(user, (err) => {
                       if (!err) {
                         console.log(user);
@@ -406,6 +430,195 @@ module.exports = (app, db) => {
 
       });
       
+      app.get("/pollwatchers", (req, res) => {
+        // get pollwatcher info from database
+        let index = req.user.current_index;
+        let database = req.user.campaigns[index].database;
+        
+        
+        Siawuser.find({ campaigns: { $elemMatch: { database } }, campaigns: { $elemMatch: { admin: false } } }, (err, docs) => {
+          if (err) { console.log(err); }
+          else {
+            console.log("Docs : ", docs);
+            res.render(process.cwd() + "/views/pug/pollwatchers", { arr: docs, admin: true });
+          }
+        });
+      });
+      
+      
+      app.post("/pollwatchers", (req, res) => {
+        // change the precinct/phone number/email/name on a pollwatcher
+        let arr = [];     
+        res.render(process.cwd() + "/views/pug/pollwatchers", { arr, admin: true });
+      });
+      
+      app.get("/addpollwatcher", (req, res) => {
+        const string = randomstring.generate(); // delete (should be in .post)
+        console.log(string);
+        res.render(process.cwd() + "/views/pug/addpollwatcher", { admin: true });
+      });
+      
+      
+      app.post("/addpollwatcher", /* add expressValidator middleware, */ (req, res) => {
+        // add pollwatcher to database, add verification to database, and send email to pollwatcher
+        
+        // verification variables
+        const token = randomstring.generate();
+        
+        // pollwatcher variables
+        const email = req.body.email;
+        const first = req.body.firstname || "";
+        const last = req.body.lastname || "";
+        const precinct = req.body.precinct || "";
+        
+        // campaign variables
+        const index = req.user.current_index;
+        const database = req.user.campaigns[index].database;
+        const public_name = req.user.campaigns[index].public_name;
+        const ward = req.user.campaigns[index].ward;
+        const no_of_precincts = req.user.campaigns[index].no_of_precincts;
+        const candidate_first = req.user.campaigns[index].candidate_first;
+        const candidate_last = req.user.campaigns[index].candidate_last;
+        
+        const campaign = {
+          database,
+          public_name,
+          ward,
+          precinct,
+          no_of_precincts,
+          candidate_first,
+          candidate_last,
+          admin: false,
+          paid: false
+        };
+        
+        let user = new Siawuser({
+          email,
+          user_first: first,
+          user_last: last,
+          campaigns: [campaign]
+        });
+        
+        let verification = {
+          email,
+          token,
+          expireAfterSeconds: 172800
+        };
+        
+        Siawuser.findOneAndUpdate({ email }, user, { upsert: true }, (err, doc) => { // upsert means if user is not in database, they will be inserted
+          
+          if (err) { console.log(err); }
+          
+          else { // no errors
+            
+            if (doc == null) { // user does not exist
+              // send email and add to verification database
+              // no need to add to user database, as upsert will do that for us
+              db.collection("verification").insertOne(verification, async (err, ver) => {
+                if (err) { console.log(err); }
+                else {
+                  
+                  // send verification email
+                  const html = '<p>Hi ' + email + ',</p><p>Thank you for signing up with Turnout the Vote!</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://election-day3.glitch.me/verify/${token}">https://election-day3.glitch.me/verify/${token}</a></p><p> Have a pleasant day!</p>';
+                  console.log(html);
+                  await sendEmail("robot@election-day3.glitch.me", email, "Please verify your account", html);
+                  
+                  res.redirect("/admin"); // add note about verifying email address
+                }
+              });
+            }
+            
+            else if (doc && doc.campaigns && doc.campaigns.some(elem => elem.database == database)) { // user exists and is signed up for our campaign
+              console.log("user exists and is signed up for our campaign");
+              console.log("doc : ", doc);
+              // no need to send email or do anything
+              // send error message and redirect to pollwatchers list
+              res.redirect("/pollwatchers");
+            }
+            
+            else { // user exists and is not signed up for our campaign
+              // add our campaign to their campaigns list]
+              console.log("user exists and is not signed up for our campaign");
+              console.log("doc : ", doc);
+              doc.campaigns.push(campaign);
+              doc.save();
+              
+              res.redirect("/pollwatchers");
+              
+            }
+          }
+        });
+
+        // db.collection("verification").update({ email }, { email, token, expireAfterSeconds: 172800 }, { upsert: true }, (err, doc) => {
+        //   if (err) { console.log(err); }
+        //   else {
+        //     db.collection("siawusers").update({ email }, {
+        //       email,
+        //       user_first: first,
+        //       user_last: last,
+        //       campaigns: [{
+        //         database,
+        //         public_name,
+        //         ward,
+        //         precinct,
+        //         no_of_precincts,
+        //         candidate_first,
+        //         candidate_last,
+        //         admin: false,
+        //         paid: false
+        //       }]
+        //     },
+        //     { upsert: true }, (err, doc) => {
+        //       if (err) { console.log(err); }
+        //       else {
+        //         res.redirect("/pollwatchers");
+        //       }
+        //     })
+        //   }
+        // })
+      });
+      
+      app.post("/deletepollwatcher", (req, res) => {
+        let id = req.body.clickedId;
+        let index = req.user.current_index;
+        let database = req.user.campaigns[index].database;
+        
+        Siawuser.findOneAndUpdate({ _id: id }, { $pull: { "campaigns" : { database } } }, (err, doc) => {
+          if (err) { console.log(err); }
+          else {
+            console.log(doc);
+            doc.save();
+            res.json({ success: "success" });
+          }
+        });
+      });
+      
+      
+      app.post("/changeprecinct", (req, res) => {
+        
+      });
+      
+      
+      app.get("/verify", (req, res) => {
+        
+        let token = req.params.token;
+        
+        db.collection("verification").findOne({ token }, (err, user) => {
+          if (err) { console.log(err); } // send an error message to page
+          else { // user was found
+            
+            let email = user.email;
+            
+            Siawuser.findOneAndUpdate({ email }, { authenticated: true }, (error, doc) => {
+              if (err) { console.log(err); } // send an error message to page
+              else {
+                res.render(process.cwd() + "/views/pug/verify");
+              }
+            });
+            
+          }
+        });
+      });
       
       
       app.get("/view/:precinct", adminMiddleware, (req, res) => {
@@ -424,7 +637,7 @@ module.exports = (app, db) => {
             });
           }
         })
-      })
+      });
 
       
       // app.get("/upload", (req, res) => {
@@ -466,8 +679,15 @@ const mainpageMiddleware = (req, res, next) => {
 
 // if person is  logged in, it will redirect to payment page rather than render main page
 const adminMiddleware = (req, res, next) => {
-  if (req.user && req.user.paid) {
-    next();
+  
+  if (req.user) {
+    let index = req.user.current_index;
+    if (req.campaigns[index].paid) {
+      next();
+    }
+    else {
+      res.redirect("/payment");
+    }
   }
   else {
     res.redirect("/login");
@@ -480,4 +700,16 @@ const checkValidationResult = (req, res, next) => {
         return next();
     }
     res.render(process.cwd() + '/views/pug/register', { errors: result.array() });
+}
+
+const sendEmail = async (from, to, subject, html) => {
+  return new Promise((resolve, reject) => {
+    transport.sendMail({ from, subject, to, html }, (err, info) => {
+      if (err) { reject(err); } // unsure what to do here! error message: could not send verification email, please try again later
+      else {
+        resolve(info)
+      }
+    });
+  });
+  
 }

@@ -1,0 +1,56 @@
+extends layout.pug
+
+block extralink
+  link(rel="stylesheet" href="/style.css")
+  
+block extrascript
+  script(src="https://code.jquery.com/jquery-3.3.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous")
+  script(src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous")
+  script(src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous")
+  script(src="/pollwatchers.js" defer)
+  
+block main
+  h1 Your pollwatchers
+  p View your pollwatchers
+  
+  div.row.font-weight-bold
+    div.col-1 First name
+    div.col-1 Last name
+    div.col-1 Phone
+    div.col-2 Email
+    div.col-1 Auth?
+    div.col-1 Precinct Assigned
+    div.col-1 Change precinct
+
+  hr
+  each item, i in arr
+    div(id="section" + (i + 1))
+      div.font-weight-bold
+        button.far.fa-times-circle(id=item._id)
+      - let index = item.current_index /* this is the index for the campaigns array */
+      - console.log("campaigns : ", item.campaigns)
+      div.row
+        div.col-1=item.user_first
+        div.col-1=item.user_last
+        div.col-1=item.phone
+        div#email.col-2=item.email
+        div.col-1=(item.authenitcated ? "Yes" : "No")
+        div.col-1=item.campaigns[index].precinct
+        div.col-3
+          form(action="/changeprecinct" method="POST")
+            div.input-group
+              input.form-control(type="text" placeholder="Change")
+              span.input-group-btn
+                button.btn.btn-primary(type="submit" class="btn btn-primary") Change
+      hr
+    
+  // each item, i in arr
+    div(id="section" + (i + 1))
+      div.font-weight-bold
+        button.far.fa-times-circle(id=item._id data-pollwatcher=pollwatcher)
+      div.row
+        div.col-3=item.firstname
+        div.col-3=item.lastname
+        div.col-3=item.address
+        div.col-3=item.phone
+    hr
