@@ -37,11 +37,12 @@ block main
         div.col-1=(item.authenitcated ? "Yes" : "No")
         div.col-1=item.campaigns[index].precinct
         div.col-3
-          form(action="/changeprecinct" method="POST")
+          form(action="/changeprecinct/"+(item._id) method="POST")
+            - console.log(item._id);
             div.input-group
-              input.form-control(type="text" placeholder="Change")
+              input.form-control(name="precinct" type="text" placeholder="Change")
               span.input-group-btn
-                button.btn.btn-primary(type="submit" class="btn btn-primary") Change
+                button.btn.btn-primary(type="submit") Change
       hr
     
   // each item, i in arr

@@ -18,6 +18,7 @@ html(lang="en")
         if errors
           for error, i in errors
             div(class="alert alert-danger") #{error.msg}
-        h3 Your account has been verified
+        if msg
+          h3=msg
         div
           a(href="/login") Click here to login

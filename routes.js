@@ -10,8 +10,9 @@ const mongo = require('mongodb').MongoClient;
 const nodemailer = require("nodemailer");
 const ObjectId = require('mongodb').ObjectID;
 const randomstring = require("randomstring");
-const Siawuser = require("./models/siawuser.js"); // admins
+const Siawuser = require("./models/siawuser.js"); // admins and pollwatchers
 const Siaw = require("./models/Siaw.js"); // voters
+const Campaign = require("./models/campaign.js"); // voters
 const transport = nodemailer.createTransport({
   service: "Mailgun",
   auth: {
@@ -60,8 +61,8 @@ module.exports = (app, db) => {
       let db = client.db('freecodecamp2018');
 
       app.get('/', /* mainpageMiddleware, */ (req, res) => {
-        
-        res.redirect("/login");
+        console.log("hello2");
+        res.redirect("/admin");
         
         /*
         let ward = req.user.ward;
@@ -314,17 +315,22 @@ module.exports = (app, db) => {
       });
       
       app.post("/register", [
-        check('email').isEmail(),
-        // password must be at least 5 chars long
-        check('password').isLength({ min: 1 }),
+        check('email').isEmail().withMessage("Invalid email"),
+        check('password').isLength({ min: 8 }).withMessage("Password must be at least 8 characters"),
         check("password").custom((val, {req, loc, path}) => {
           if (val !== req.body.password2) {
-              throw new Error("Passwords don't match");
+            throw new Error("Passwords don't match");
           }
           else {
-              return val;
+            return val;
           }
-        })
+        }),
+        check("ward").isInt().withMessage("Ward must be a number"),
+        check("precincts").isInt().withMessage("Precincts must be a number"),
+        check("candidatefirst").isString(),
+        check("candidatelast").isString(),
+        check("userfirst").isString(),
+        check("userlast").isString()
         ],
         checkValidationResult,
         (req, res) => {
@@ -333,70 +339,243 @@ module.exports = (app, db) => {
         let pass = req.body.password;
         let pass2 = req.body.password2;
         let ward = req.body.ward;
-        let precincts = req.body.precincts;
-        let candfirst = req.body.candidatefirst;
-        let candlast = req.body.candidatelast;
+        let no_of_precincts = req.body.precincts;
+        let candidate_first = req.body.candidatefirst;
+        let candidate_last = req.body.candidatelast;
+        let user_first = req.body.userfirst;
+        let user_last = req.body.userlast;
         
-        let database = candlast + "-" + Date.now();
-        let campaign = candlast + " for " + ward;
-        
-        // check if email is already registered
-        Siawuser.findOne({ email: email })
-        .exec()
-        .then((user) => {
-          if (user) {
-            return res.status(422).json({ message: "email already exists" });
+        let database = candidate_last + "-" + Date.now();        
+        let public_name = candidate_last + " for " + ward;
+                
+        bcrypt.genSalt(10, (salt_err, salt) => {
+          if (salt_err) {
+            console.log(salt_err);
+            res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Registration error. Please try again. If this problem persists, please contact support."  }] });
           }
-          else {
-            
-            bcrypt.genSalt(10, (err, salt) => {
+          
+          else { // salt generated
+            bcrypt.hash(pass, salt, (err, hash) => {
+              
+              if (err) {
+                console.log(err); // send error message: Error: Registration error. Try again. If this problem persists, contact support at scott@election-day.com
+                res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Registration error. Please try again. If this problem persists, please contact support." }] });
 
-              bcrypt.hash(pass, salt, (error, hash) => {
-                if (error) { console.log("error"); }
-                else {
-                  const user = new Siawuser({
-                    email,
-                    password: hash,
-                    campaigns: [
-                      {
-                        database: database,
-                        public_name: candlast + " for " + ward,
-                        candidate_first: candfirst,
-                        candidate_last: candlast,
-                        ward: ward,
-                        no_of_precincts: precincts,
-                        admin: true
-                      }
-                    ], // database names
-                  });
-                  user.save()
-                  .then((result) => {
-                    console.log(result);
-                    console.log("user, : ", user);
-                    console.log("user.campaigns : ", result.campaigns);
-                    console.log("user.campaigns[0] : ", result.campaigns[0]);
-                    console.log("user.campaigns[0]._id : ", result.campaigns[0]._id);
-                    console.log("user.campaigns[0]._id.oid : ", result.campaigns[0]._id.oid);
-                    req.login(user, (err) => {
-                      if (!err) {
-                        console.log(user);
-                        res.redirect('/payment');
-                      }
-                      else {
-                        console.log(error);
-                        res.status(500).json({ error : error });
-                      }
-                    })
-                  })
-                  .catch((error) => {
-                    console.log(error);
-                    res.status(500).json({ error : error });
-                  })
+              }
+              
+              else { // hash generated
+                let campaigninfo = {
+                  database,
+                  public_name,
+                  admin: true,
+                  paid: false
                 };
-              })
+
+                let newuser = new Siawuser({
+                  email,
+                  password: hash,
+                  user_first,
+                  user_last,
+                  campaigns: [campaigninfo]
+                });
+                
+                
+                Siawuser.findOneAndUpdate({ email }, newuser, { upsert: true }, async (error, user) => {
+                  if (error) {
+                    console.log(error);
+                    res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Registration error. Please try again. If this problem persists, please contact support." }] });
+
+                  }
+                  
+                  else { // user added or updated (have to check in this else condition)
+                    if (!user) { // no previous user, meaning you need to send an email and add to verification database, and add to campaign database
+                      
+                      let token = randomstring.generate();
+                      
+                      let verification = {
+                        email,
+                        token,
+                        expireAfterSeconds: 172800
+                      };
+                      
+                      db.collection("verification").insertOne(verification, async (ver_err, ver_doc) => {
+                        if (ver_err) {
+                          console.log(ver_err);
+                          res.render(process.cwd() + "/views/pug/register", { errors: [{msg: "Verification could not be generated. Please request another verification email in order to verify your account." }] });
+                        }
+                        
+                        else { // new user, and verification added to verification database
+
+                          // send verification email
+                          const html = '<p>Hi ' + email + ',</p><p>Thank you for signing up with Turnout the Vote!</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://election-day3.glitch.me/verify/' + token + '">https://election-day3.glitch.me/verify/' + token + '</a></p><p> Have a pleasant day!</p>';
+                          console.log(html);
+                          console.log("await coming");
+                          await sendEmail("scott@voterturnout.com", email, "Please verify your account", html)
+                          .then(() => {
+                            let campaign = new Campaign({
+                              database,
+                              public_name,
+                              ward,
+                              no_of_precincts,
+                              candidate_first,
+                              candidate_last,
+                              precincts: []
+                            })
+
+
+                            // add to campaign database
+                            db.collection("campaign").insertOne(campaign, (campaign_error, campaign_doc) => {
+                              if (campaign_error) {
+                                console.log(campaign_error); // send message: Error: Your campaign could not be saved. Please contact support for help
+                              }
+                              else {
+                                res.redirect("/payment"); // add note about verifying email address (this on-screen message goes to admin though, not pollwatcher)
+                              }
+                            });
+                          })
+                          .catch((email_err) => {
+                            console.log("email error");
+                            res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Error: Account created, but verification email failed. Please log in to request a new verification email in order to verify account." }] });
+                          });
+                          
+                          
+
+                        }
+                      });
+                      
+                      
+                      
+                    }
+                  }
+                  
+                })
+              }
+                
             })
           }
-        });
+        })
+        
+        
+        
+//         // check if email is already registered
+//         Siawuser.findOne({ email: email })
+//         .exec()
+//         .then((user) => {
+//           if (user) {
+//             return res.status(422).json({ message: "email already exists" });
+//           }
+//           else {
+            
+//             bcrypt.genSalt(10, (err, salt) => {
+
+//               bcrypt.hash(pass, salt, (error, hash) => {
+//                 if (error) { console.log("error"); }
+//                 else {
+//                   const user = new Siawuser({
+//                     email,
+//                     password: hash,
+//                     campaigns: [
+//                       {
+//                         database: database,
+//                         public_name: candlast + " for " + ward,
+//                         candidate_first: candfirst,
+//                         candidate_last: candlast,
+//                         ward: ward,
+//                         no_of_precincts: precincts,
+//                         admin: true
+//                       }
+//                     ], // database names
+//                   });
+//                   user.save()
+//                   .then((result) => {
+
+//                     req.login(user, (err) => {
+//                       if (err) {
+//                         console.log(error);
+//                         res.status(500).json({ error : error });
+                        
+//                       }
+//                       else {
+//                         console.log(user);
+                        
+//                         db.collection("verification").insertOne(verification, async (err, ver) => {
+//                           if (err) { console.log(err); }
+//                           else {
+
+//                             // send verification email
+//                             const html = '<p>Hi ' + email + ',</p><p>Thank you for signing up with Turnout the Vote!</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://election-day3.glitch.me/verify/' + token + '">https://election-day3.glitch.me/verify/' + token + '</a></p><p> Have a pleasant day!</p>';
+//                             console.log(html);
+//                             await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
+
+//                             res.redirect("/pollwatchers"); // add note about verifying email address (this on-screen message goes to admin though, not pollwatcher)
+//                           }
+//                         });
+                        
+                        
+//                         db.collection("campaigns").insertOne({
+                          
+//                         });
+//                         res.redirect('/payment');
+//                       }
+//                     })
+//                   })
+//                   .catch((error) => {
+//                     console.log(error);
+//                     res.status(500).json({ error : error });
+//                   })
+//                 };
+//               })
+//             })
+//           }
+//         });
+        
+//         Siawuser.findOneAndUpdate({ email }, user, { upsert: true }, (err, doc) => { // upsert means if user is not in database, they will be inserted
+          
+//           if (err) { console.log(err); }
+          
+//           else { // no errors
+            
+//             if (doc == null) { // user does not exist
+//               // send email and add to verification database
+//               // no need to add to user database, as upsert will do that for us
+//               db.collection("verification").insertOne(verification, async (err, ver) => {
+//                 if (err) { console.log(err); }
+//                 else {
+                  
+//                   // send verification email
+//                   const html = '<p>Hi ' + email + ',</p><p>Thank you for signing up with Turnout the Vote!</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://election-day3.glitch.me/verify/' + token + '">https://election-day3.glitch.me/verify/' + token + '</a></p><p> Have a pleasant day!</p>';
+//                   console.log(html);
+//                   await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
+                  
+//                   res.redirect("/pollwatchers"); // add note about verifying email address (this on-screen message goes to admin though, not pollwatcher)
+//                 }
+//               });
+//             }
+            
+//             else if (doc && doc.campaigns && doc.campaigns.some(elem => elem.database == database)) { // user exists and is signed up for our campaign
+//               console.log("user exists and is signed up for our campaign");
+//               console.log("doc : ", doc);
+//               // no need to send email or do anything
+//               // send error message and redirect to pollwatchers list
+//               res.redirect("/pollwatchers");
+//             }
+            
+//             else { // user exists and is not signed up for our campaign
+//               // add our campaign to their campaigns list]
+//               console.log("user exists and is not signed up for our campaign");
+//               console.log("doc : ", doc);
+//               doc.campaigns.push(campaign);
+//               doc.save();
+              
+//               res.redirect("/pollwatchers");
+              
+//             }
+//           }
+//         });
+
+        
+        
+        
       });
       
       app.get("/payment", /* paymentMiddleware, */ (req, res) => {
@@ -519,11 +698,18 @@ module.exports = (app, db) => {
                 else {
                   
                   // send verification email
-                  const html = '<p>Hi ' + email + ',</p><p>Thank you for signing up with Turnout the Vote!</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://election-day3.glitch.me/verify/${token}">https://election-day3.glitch.me/verify/${token}</a></p><p> Have a pleasant day!</p>';
+                  const html = '<p>Hi ' + email + ',</p><p>Thank you for signing up with Turnout the Vote!</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://election-day3.glitch.me/verify/' + token + '">https://election-day3.glitch.me/verify/' + token + '</a></p><p> Have a pleasant day!</p>';
                   console.log(html);
-                  await sendEmail("robot@election-day3.glitch.me", email, "Please verify your account", html);
                   
-                  res.redirect("/admin"); // add note about verifying email address
+                  console.log("await coming");
+                  await sendEmail("scott@voterturnout.com", email, "Please verify your account", html).catch((email_err) => {
+                    console.log("rejected");
+                    res.render(process.cwd() + "/views/pug/register", { msg: "Verification could not be generated. Please request another verification email" });
+                    return;
+
+                  });
+                  
+                  // res.redirect("/pollwatchers"); // add note about verifying email address (this on-screen message goes to admin though, not pollwatcher)
                 }
               });
             }
@@ -594,25 +780,55 @@ module.exports = (app, db) => {
       });
       
       
-      app.post("/changeprecinct", (req, res) => {
+      app.post("/changeprecinct/:userid", (req, res) => {
+        let precinct = req.body.precinct;
+        let id = req.params.userid;
+        
+        console.log(precinct);
+        console.log(id);
+        
+        Siawuser.findOneAndUpdate({ _id: id }, { precinct }, { new: true }, (err, doc) => {
+          if (err) { console.log(err); } // return error: "Error: Unable to change precinct. Please try again.
+          else {
+            console.log(doc);
+            
+            let index = doc.current_index;
+            doc.campaigns[index].precinct = precinct;
+            doc.save();
+            res.json({ msg: "Success" });
+          }
+        });
         
       });
       
       
-      app.get("/verify", (req, res) => {
+      app.get("/verify/:token", (req, res) => {
         
-        let token = req.params.token;
+        let clicked_token = req.params.token; // user "entered" token
         
-        db.collection("verification").findOne({ token }, (err, user) => {
-          if (err) { console.log(err); } // send an error message to page
+        db.collection("verification").findOne({ token: clicked_token }, (err, user) => {
+          if (err) {
+            res.render(process.cwd() + "/views/pug/verified", { msg: "Verification failed: Unknown error" });
+            console.log(err);
+          } // send an error message to page
           else { // user was found
             
             let email = user.email;
+            let real_token = user.token;
             
             Siawuser.findOneAndUpdate({ email }, { authenticated: true }, (error, doc) => {
-              if (err) { console.log(err); } // send an error message to page
+              if (err) {
+                console.log(err);
+                res.render(process.cwd() + "/views/pug/verified", { msg: "Verification failed: Unknown error" });
+              }
               else {
-                res.render(process.cwd() + "/views/pug/verify");
+                
+                if (real_token == clicked_token) { // token matches
+                  res.render(process.cwd() + "/views/pug/verified", { msg: "You are now verified" });
+                }
+                else { // token doesn't match
+                  res.render(process.cwd() + "/views/pug/verified", { msg: "Verification failed: Token incorrect" });
+                }
               }
             });
             
@@ -702,10 +918,12 @@ const checkValidationResult = (req, res, next) => {
     res.render(process.cwd() + '/views/pug/register', { errors: result.array() });
 }
 
-const sendEmail = async (from, to, subject, html) => {
+const sendEmail = (from, to, subject, html) => {
   return new Promise((resolve, reject) => {
     transport.sendMail({ from, subject, to, html }, (err, info) => {
-      if (err) { reject(err); } // unsure what to do here! error message: could not send verification email, please try again later
+      if (err) {
+        reject(err);
+      } // unsure what to do here! error message: could not send verification email, please try again later
       else {
         resolve(info)
       }
