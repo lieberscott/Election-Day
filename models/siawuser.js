@@ -11,15 +11,12 @@ const siawuserSchema = mongoose.Schema({
   phone: { type: String, default: "" },
   user_first: { type: String, default: "" },
   user_last: { type: String, default: "" },
-  current_index: { type: Number, default: 0 }, // this identifies which index in the [campaigns] array is pointed to, gets updated upon signin
-  campaigns: [
-    {
-      database: { type: String, default: "" },
-      public_name: { type: String, default: "" },
-      admin: { type: Boolean, required: true, default: false }, // needs to be changed for admins
-      paid: { type: Boolean, required: true, default: false } // only for admins
-    }
-  ], // database names (for dropdown menu, if someone is signed up for more than one
+  ward: { type: Number, required: true },
+  precinct: { type: Number, default: 0 },
+  database: { type: String, default: "" },
+  public_name: { type: String, default: "" },
+  admin: { type: Boolean, required: true, default: false }, // needs to be changed for admins
+  paid: { type: Boolean, required: true, default: false } ,// only for admins
   authenticated: { type: Boolean, default: false }
 });
 

@@ -9,7 +9,9 @@ mongoose.Promise = global.Promise;
 module.exports = (passport) => {
   // passport is smart enough to capture 'username' and 'password' from login page (must be named 'username' and 'password' on login page for passport to get them)
   // i'm calling them 'email' and 'pass' below because that's what they are, but they are just the user's inputs from the login page
-  passport.use(new LocalStrategy((email, pass, done) => {
+  passport.use(new LocalStrategy((e_mail, pass, done) => {
+    
+    let email = e_mail.toLowerCase();
     
     let query = { email: email };
     

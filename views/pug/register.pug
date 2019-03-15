@@ -17,7 +17,10 @@ html(lang="en")
         != messages('messages', local)
         if errors
           for error, i in errors
-            div(class="alert alert-danger") #{error.msg}
+            div.alert.alert-danger #{error.msg}
+        if successes
+          for success, i in successes
+            div.alert.alert-success #{success.msg}
         h3 Election Day App
         p Ready to register? Fill out the information below accurately. On the next page you will be asked to enter your credit card information.
         div.form

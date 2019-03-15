@@ -12,7 +12,7 @@ const ObjectId = require('mongodb').ObjectID;
 const randomstring = require("randomstring");
 const Siawuser = require("./models/siawuser.js"); // admins and pollwatchers
 const Siaw = require("./models/Siaw.js"); // voters
-const Campaign = require("./models/campaign.js"); // voters
+const Campaign = require("./models/campaign.js");
 const transport = nodemailer.createTransport({
   service: "Mailgun",
   auth: {
@@ -62,7 +62,7 @@ module.exports = (app, db) => {
 
       app.get('/', /* mainpageMiddleware, */ (req, res) => {
         console.log("hello2");
-        res.redirect("/admin");
+        res.redirect("/login");
         
         /*
         let ward = req.user.ward;
@@ -172,12 +172,14 @@ module.exports = (app, db) => {
             source: token,
           });
           
-          let id = req.user.campaigns[0]._id;
+          let id = req.user._id;
+          console.log(id);
+          console.log(req.user.email);
           
           console.log(charge);
                     
           if (charge.paid) {
-            db.collection("siawusers").update({ "campaigns._id": id }, { $set: { "campaigns.$.paid": true } }, (err, doc) => {
+            db.collection("siawusers").updateOne({ _id: id }, { $set: { paid: true } }, (err, doc) => {
               if (err) { console.log(err) }
               else {
                 console.log(doc);
@@ -223,7 +225,8 @@ module.exports = (app, db) => {
       });
 
 
-      app.get('/login', loginpageMiddleware, (req, res, next) => {
+      app.get('/login', /* loginpageMiddleware, */ (req, res, next) => {
+        console.log("login");
         res.render(process.cwd() + "/views/pug/login.pug");
       });
 
@@ -237,12 +240,16 @@ module.exports = (app, db) => {
       // });
       
       app.post('/login', passport.authenticate("local", { failureRedirect: "/register" }), (req, res) => {
-        // need to check for current_index, and update current_index for all users
-        if (req.user.paid) {
+
+        if (req.user.admin && req.user.paid) {
           res.redirect('/admin');
         }
-        else {
-          res.redirect('/login');
+        else if (req.user.admin && !req.user.paid) {
+          res.redirect('/payment');
+        }
+        
+        else { // req.user.admin = false (pollwatcher)
+          res.redirect("/choice");
         }
       });
       
@@ -335,7 +342,7 @@ module.exports = (app, db) => {
         checkValidationResult,
         (req, res) => {
         
-        let email = req.body.email;
+        let email = req.body.email.toLowerCase();
         let pass = req.body.password;
         let pass2 = req.body.password2;
         let ward = req.body.ward;
@@ -347,237 +354,123 @@ module.exports = (app, db) => {
         
         let database = candidate_last + "-" + Date.now();        
         let public_name = candidate_last + " for " + ward;
-                
-        bcrypt.genSalt(10, (salt_err, salt) => {
-          if (salt_err) {
-            console.log(salt_err);
-            res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Registration error. Please try again. If this problem persists, please contact support."  }] });
+        
+         // check if email is already registered
+        Siawuser.findOne({ email })
+        .exec()
+        .then((user) => {
+          if (user) {
+            res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Email already exists" }] });
           }
           
-          else { // salt generated
-            bcrypt.hash(pass, salt, (err, hash) => {
-              
+          else { // FIRST ELSE: IT IS A NEW USER
+            bcrypt.genSalt(10, (err, salt) => {
               if (err) {
-                console.log(err); // send error message: Error: Registration error. Try again. If this problem persists, contact support at scott@election-day.com
-                res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Registration error. Please try again. If this problem persists, please contact support." }] });
-
+                console.log(err);
+                res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Registration error: Please try again" }] });
               }
-              
-              else { // hash generated
-                let campaigninfo = {
-                  database,
-                  public_name,
-                  admin: true,
-                  paid: false
-                };
 
-                let newuser = new Siawuser({
-                  email,
-                  password: hash,
-                  user_first,
-                  user_last,
-                  campaigns: [campaigninfo]
-                });
-                
-                
-                Siawuser.findOneAndUpdate({ email }, newuser, { upsert: true }, async (error, user) => {
+              else { // SECOND ELSE: PASSWORD SALTED
+                bcrypt.hash(pass, salt, (error, hash) => {
                   if (error) {
                     console.log(error);
-                    res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Registration error. Please try again. If this problem persists, please contact support." }] });
-
+                    res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Registration error: Please try again" }] });
                   }
-                  
-                  else { // user added or updated (have to check in this else condition)
-                    if (!user) { // no previous user, meaning you need to send an email and add to verification database, and add to campaign database
+                  else { // THIRD ELSE: PASSWORD HASHED
                       
-                      let token = randomstring.generate();
-                      
-                      let verification = {
-                        email,
-                        token,
-                        expireAfterSeconds: 172800
-                      };
-                      
-                      db.collection("verification").insertOne(verification, async (ver_err, ver_doc) => {
-                        if (ver_err) {
-                          console.log(ver_err);
-                          res.render(process.cwd() + "/views/pug/register", { errors: [{msg: "Verification could not be generated. Please request another verification email in order to verify your account." }] });
+                    const user = new Siawuser({
+                      email,
+                      password: hash,
+                      user_first,
+                      user_last,
+                      ward,
+                      database,
+                      public_name,
+                      admin: true,
+                      paid: false,
+                      authenticated: false
+                    });
+                    user.save()
+                    .then((result) => {
+                      console.log("result! : ", result);
+                      req.login(user, (login_err) => {
+                        if (login_err) {
+                          console.log(error);
+                          res.redirect("/login"); // add error message about registrtion successful but login failure. pleasa try to login below.
+
                         }
-                        
-                        else { // new user, and verification added to verification database
+                        else { // FOURTH ELSE: USER CREATED, AND ABLE TO LOG IN
+                          
+                          let precincts = [];
+                          
+                          for (let i = 0; i < no_of_precincts; i++) {
+                            let obj = {};
+                            
+                            obj.number = i + 1;
+                            obj.total_votes = 0;
+                            obj.last_updated = "";
+                            obj.updated_by = "";
+                            obj.opponent_votes = {};
+                            
+                            precincts.push(obj);
+                          }
+                          
+                          let campaign = {
+                            database,
+                            public_name,
+                            ward,
+                            no_of_precincts,
+                            candidate_first,
+                            candidate_last,
+                            precincts
+                          }
 
-                          // send verification email
-                          const html = '<p>Hi ' + email + ',</p><p>Thank you for signing up with Turnout the Vote!</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://election-day3.glitch.me/verify/' + token + '">https://election-day3.glitch.me/verify/' + token + '</a></p><p> Have a pleasant day!</p>';
-                          console.log(html);
-                          console.log("await coming");
-                          await sendEmail("scott@voterturnout.com", email, "Please verify your account", html)
-                          .then(() => {
-                            let campaign = new Campaign({
-                              database,
-                              public_name,
-                              ward,
-                              no_of_precincts,
-                              candidate_first,
-                              candidate_last,
-                              precincts: []
-                            })
+                          
+                          Campaign.create(campaign, (campaigns_error, doc) => {
+                            if (campaigns_error) {
+                              console.log(campaigns_error);
+                              res.redirect("/register", { errors: [{ msg: "Error: Database failure. Contact support to help set up database." }] });
+                            }
+                            else { // FIFTH ELSE: CAMPAIGN INSERTED INTO CAMPAIGNS DATABASE
+                              let token = randomstring.generate();
 
+                              let verification = {
+                                email,
+                                token,
+                                expireAfterSeconds: 172800
+                              };
+                              
+                              db.collection("verification").insertOne(verification, async (verification_err, ver) => {
 
-                            // add to campaign database
-                            db.collection("campaign").insertOne(campaign, (campaign_error, campaign_doc) => {
-                              if (campaign_error) {
-                                console.log(campaign_error); // send message: Error: Your campaign could not be saved. Please contact support for help
-                              }
-                              else {
-                                res.redirect("/payment"); // add note about verifying email address (this on-screen message goes to admin though, not pollwatcher)
-                              }
-                            });
+                                if (verification_err) {
+                                  console.log(err);
+                                  res.render("/register", { errors: [{ msg: "Error: Account created, but verification email failed. Log in to request another verificaiton email to verify your account." }] });
+                                }
+                                else { // SIXTH ELSE: VERIFICATION INSERTED INTO VERIFICATION DATABASE
+                                  // send verification email
+                                  const html = '<p>Hi ' + email + ',</p><p>Thank you for signing up with Turnout the Vote!</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://election-day3.glitch.me/verify/' + token + '">https://election-day3.glitch.me/verify/' + token + '</a></p><p> Have a pleasant day!</p>';
+                                  console.log(html);
+                                  await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
+
+                                  res.redirect("/payment"); // add note about verifying email address (this on-screen message goes to admin though, not pollwatcher)
+                                }
+                              });
+                            }
                           })
-                          .catch((email_err) => {
-                            console.log("email error");
-                            res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Error: Account created, but verification email failed. Please log in to request a new verification email in order to verify account." }] });
-                          });
-                          
-                          
-
                         }
-                      });
-                      
-                      
-                      
-                    }
-                  }
-                  
+                      })
+                    })
+                    .catch((catch_err) => {
+                      console.log(catch_err);
+                      res.render("/register", { errors: [{ msg: "There was an error with your registration. That's all we know right now. Please contact support for help." }] });
+                    });
+                  };
                 })
               }
-                
-            })
+            });
           }
-        })
-        
-        
-        
-//         // check if email is already registered
-//         Siawuser.findOne({ email: email })
-//         .exec()
-//         .then((user) => {
-//           if (user) {
-//             return res.status(422).json({ message: "email already exists" });
-//           }
-//           else {
-            
-//             bcrypt.genSalt(10, (err, salt) => {
-
-//               bcrypt.hash(pass, salt, (error, hash) => {
-//                 if (error) { console.log("error"); }
-//                 else {
-//                   const user = new Siawuser({
-//                     email,
-//                     password: hash,
-//                     campaigns: [
-//                       {
-//                         database: database,
-//                         public_name: candlast + " for " + ward,
-//                         candidate_first: candfirst,
-//                         candidate_last: candlast,
-//                         ward: ward,
-//                         no_of_precincts: precincts,
-//                         admin: true
-//                       }
-//                     ], // database names
-//                   });
-//                   user.save()
-//                   .then((result) => {
-
-//                     req.login(user, (err) => {
-//                       if (err) {
-//                         console.log(error);
-//                         res.status(500).json({ error : error });
-                        
-//                       }
-//                       else {
-//                         console.log(user);
-                        
-//                         db.collection("verification").insertOne(verification, async (err, ver) => {
-//                           if (err) { console.log(err); }
-//                           else {
-
-//                             // send verification email
-//                             const html = '<p>Hi ' + email + ',</p><p>Thank you for signing up with Turnout the Vote!</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://election-day3.glitch.me/verify/' + token + '">https://election-day3.glitch.me/verify/' + token + '</a></p><p> Have a pleasant day!</p>';
-//                             console.log(html);
-//                             await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
-
-//                             res.redirect("/pollwatchers"); // add note about verifying email address (this on-screen message goes to admin though, not pollwatcher)
-//                           }
-//                         });
-                        
-                        
-//                         db.collection("campaigns").insertOne({
-                          
-//                         });
-//                         res.redirect('/payment');
-//                       }
-//                     })
-//                   })
-//                   .catch((error) => {
-//                     console.log(error);
-//                     res.status(500).json({ error : error });
-//                   })
-//                 };
-//               })
-//             })
-//           }
-//         });
-        
-//         Siawuser.findOneAndUpdate({ email }, user, { upsert: true }, (err, doc) => { // upsert means if user is not in database, they will be inserted
-          
-//           if (err) { console.log(err); }
-          
-//           else { // no errors
-            
-//             if (doc == null) { // user does not exist
-//               // send email and add to verification database
-//               // no need to add to user database, as upsert will do that for us
-//               db.collection("verification").insertOne(verification, async (err, ver) => {
-//                 if (err) { console.log(err); }
-//                 else {
-                  
-//                   // send verification email
-//                   const html = '<p>Hi ' + email + ',</p><p>Thank you for signing up with Turnout the Vote!</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://election-day3.glitch.me/verify/' + token + '">https://election-day3.glitch.me/verify/' + token + '</a></p><p> Have a pleasant day!</p>';
-//                   console.log(html);
-//                   await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
-                  
-//                   res.redirect("/pollwatchers"); // add note about verifying email address (this on-screen message goes to admin though, not pollwatcher)
-//                 }
-//               });
-//             }
-            
-//             else if (doc && doc.campaigns && doc.campaigns.some(elem => elem.database == database)) { // user exists and is signed up for our campaign
-//               console.log("user exists and is signed up for our campaign");
-//               console.log("doc : ", doc);
-//               // no need to send email or do anything
-//               // send error message and redirect to pollwatchers list
-//               res.redirect("/pollwatchers");
-//             }
-            
-//             else { // user exists and is not signed up for our campaign
-//               // add our campaign to their campaigns list]
-//               console.log("user exists and is not signed up for our campaign");
-//               console.log("doc : ", doc);
-//               doc.campaigns.push(campaign);
-//               doc.save();
-              
-//               res.redirect("/pollwatchers");
-              
-//             }
-//           }
-//         });
-
-        
-        
-        
-      });
-      
+        });
+      });      
       app.get("/payment", /* paymentMiddleware, */ (req, res) => {
         res.render(process.cwd() + '/views/pug/payment');
       });
@@ -611,11 +504,10 @@ module.exports = (app, db) => {
       
       app.get("/pollwatchers", (req, res) => {
         // get pollwatcher info from database
-        let index = req.user.current_index;
-        let database = req.user.campaigns[index].database;
+        let database = req.user.database;
         
         
-        Siawuser.find({ campaigns: { $elemMatch: { database } }, campaigns: { $elemMatch: { admin: false } } }, (err, docs) => {
+        Siawuser.find({ database }, { $elemMatch: { admin: false } },  (err, docs) => {
           if (err) { console.log(err); }
           else {
             console.log("Docs : ", docs);
@@ -645,37 +537,30 @@ module.exports = (app, db) => {
         const token = randomstring.generate();
         
         // pollwatcher variables
-        const email = req.body.email;
+        const email = req.body.email.toLowerCase();
         const first = req.body.firstname || "";
         const last = req.body.lastname || "";
         const precinct = req.body.precinct || "";
         
         // campaign variables
-        const index = req.user.current_index;
-        const database = req.user.campaigns[index].database;
-        const public_name = req.user.campaigns[index].public_name;
-        const ward = req.user.campaigns[index].ward;
-        const no_of_precincts = req.user.campaigns[index].no_of_precincts;
-        const candidate_first = req.user.campaigns[index].candidate_first;
-        const candidate_last = req.user.campaigns[index].candidate_last;
-        
-        const campaign = {
-          database,
-          public_name,
-          ward,
-          precinct,
-          no_of_precincts,
-          candidate_first,
-          candidate_last,
-          admin: false,
-          paid: false
-        };
+        const database = req.user.database;
+        const public_name = req.user.public_name;
+        const ward = req.user.ward;
+        const no_of_precincts = req.user.no_of_precincts;
+        const candidate_first = req.user.candidate_first;
+        const candidate_last = req.user.candidate_last;
         
         let user = new Siawuser({
           email,
           user_first: first,
           user_last: last,
-          campaigns: [campaign]
+          ward,
+          precinct,
+          database,
+          public_name,
+          admin: false,
+          paid: false,
+          authenticated: false
         });
         
         let verification = {
@@ -684,7 +569,7 @@ module.exports = (app, db) => {
           expireAfterSeconds: 172800
         };
         
-        Siawuser.findOneAndUpdate({ email }, user, { upsert: true }, (err, doc) => { // upsert means if user is not in database, they will be inserted
+        Siawuser.findOneAndUpdate({ email }, user, { upsert: true }, (err, doc) => {
           
           if (err) { console.log(err); }
           
@@ -714,7 +599,7 @@ module.exports = (app, db) => {
               });
             }
             
-            else if (doc && doc.campaigns && doc.campaigns.some(elem => elem.database == database)) { // user exists and is signed up for our campaign
+            else if (doc.database == database) { // user exists and is signed up for our campaign
               console.log("user exists and is signed up for our campaign");
               console.log("doc : ", doc);
               // no need to send email or do anything
@@ -723,57 +608,23 @@ module.exports = (app, db) => {
             }
             
             else { // user exists and is not signed up for our campaign
-              // add our campaign to their campaigns list]
               console.log("user exists and is not signed up for our campaign");
-              console.log("doc : ", doc);
-              doc.campaigns.push(campaign);
-              doc.save();
-              
-              res.redirect("/pollwatchers");
-              
+              res.render(process.cwd() + "/views/pug/addpollwatcher", { errors: [{ msg: "User already signed up for another campaign. User must delete their account so you can add them to your campaign, or use a different email address." }] });
             }
           }
         });
 
-        // db.collection("verification").update({ email }, { email, token, expireAfterSeconds: 172800 }, { upsert: true }, (err, doc) => {
-        //   if (err) { console.log(err); }
-        //   else {
-        //     db.collection("siawusers").update({ email }, {
-        //       email,
-        //       user_first: first,
-        //       user_last: last,
-        //       campaigns: [{
-        //         database,
-        //         public_name,
-        //         ward,
-        //         precinct,
-        //         no_of_precincts,
-        //         candidate_first,
-        //         candidate_last,
-        //         admin: false,
-        //         paid: false
-        //       }]
-        //     },
-        //     { upsert: true }, (err, doc) => {
-        //       if (err) { console.log(err); }
-        //       else {
-        //         res.redirect("/pollwatchers");
-        //       }
-        //     })
-        //   }
-        // })
       });
       
       app.post("/deletepollwatcher", (req, res) => {
         let id = req.body.clickedId;
-        let index = req.user.current_index;
-        let database = req.user.campaigns[index].database;
+        let database = req.user.catabase;
         
-        Siawuser.findOneAndUpdate({ _id: id }, { $pull: { "campaigns" : { database } } }, (err, doc) => {
+        Siawuser.findOneAndURemove({ _id: id }, (err, doc) => {
           if (err) { console.log(err); }
           else {
+
             console.log(doc);
-            doc.save();
             res.json({ success: "success" });
           }
         });
@@ -792,8 +643,7 @@ module.exports = (app, db) => {
           else {
             console.log(doc);
             
-            let index = doc.current_index;
-            doc.campaigns[index].precinct = precinct;
+            doc.precinct = precinct;
             doc.save();
             res.json({ msg: "Success" });
           }
@@ -854,6 +704,109 @@ module.exports = (app, db) => {
           }
         })
       });
+      
+      app.get("/configure", (req, res) => {
+        
+        let admin = req.user.admin;
+        
+        res.render(process.cwd() + "/views/pug/configure", { admin: true });
+      });
+      
+      app.post("/addopponents", (req, res) => {
+        
+        let database = req.user.database;
+        
+        
+        let opponents_string = req.body.opponents; // "Dwight D. Eisenhower, John F. Kennedy, Woodrow Wilson"
+        let regex = /,\s*/g;
+        let opponents = opponents_string.split(regex);
+        let len = opponents.length;
+        let obj = {};
+        for (let i = 0; i < len; i++) {
+          let opponent = opponents[i] // "Dwight D. Eisenhower"
+          obj[opponent] = 0; // "Dwight D. Eisenhower": 0
+        }
+        
+        Campaign.findOneAndUpdate( { database }, { $set: { "precincts.$[elem].opponent_votes": obj } }, { "arrayFilters": [{ "elem.number": { $gte: 1 } }], "multi": true }, (err, doc) => {
+          if (err) {
+            console.log(err);
+            res.render(process.cwd() + "/views/pug/configure", { admin: true, errors: [{ msg: "Could not update precincts at this time. Please try again." }] });
+          }
+          
+          else {
+            res.render(process.cwd() + "/views/pug/configure", { admin: true, successes: [{ msg: "Database successfully updated" }] });
+          }
+          
+          
+        });
+        
+      });
+      
+      app.get("/campaigns", (req, res) => {
+        console.log("req : ", req);
+        console.log("req.body : ", req.body);
+        console.log("req.query : ", req.query);
+        res.render(process.cwd() + "/views/pug/campaigns", { arr: [] });
+      });
+      
+      app.post("/changeprecincts", (req, res) => {
+        let database = req.user.database;
+        let new_no_of_precincts = parseInt(req.body.precincts);
+
+        Campaign.findOne({ database })
+        .exec()
+        .then((doc) => {
+          console.log("doc : ", doc);
+
+          // Step 1: Check if user added or subtracted precincts
+          // Step 2: If lowered, pop off the difference from the document array
+          // Step 3: If increased, copy the first precinct object in the campaign, create a loop so you change the precinct_number to the old total number of precincts + 1, push into array. Repeat until you reach the new total number of precincts
+
+          let difference = doc.no_of_precincts - new_no_of_precincts; // will be positive or negative
+          let precincts = doc.precincts; // Array of objects
+          let len = precincts.length; // will be 1 by default, or some larger positive number if user specified so during registration
+
+
+          console.log("doc.no_of_precincts : ", doc.no_of_precincts);
+          console.log("new_no_of_precincts : ", new_no_of_precincts);
+          console.log("difference : ", difference);
+
+          doc.no_of_precincts = new_no_of_precincts;
+
+          if (difference > 0) { // admin lowered the number of precincts, so need to remove them from Mongo doc
+            for (let i = 0; i < difference; i++) {
+              doc.precincts.pop();
+            }
+            doc.save();
+            res.render(process.cwd() + "/views/pug/configure", { successes: [{ msg: "Precincts successfully changed." }] });
+
+          }
+
+          else if (difference < 0) { // admin increased the number of precincts, so need to add them
+
+            let obj = doc.precincts[0];
+
+            for (let i = 0; i > difference; i--) {
+              len++; // increase last precinct added by one, so if user previously identified 40 precincts, this number is now 41
+              obj.number = len; // 41st precinct
+              doc.precincts.push(obj); // push object into precincts array
+            }
+            doc.save();
+            res.render(process.cwd() + "/views/pug/configure", { successes: [{ msg: "Precincts successfully changed." }] });
+
+          }
+
+          else { // difference is 0 (they entered same number as before)
+            res.render(process.cwd() + "/views/pug/configure", { errors: [{ msg: "Same number of precincts as already on file." }] });
+
+          }
+
+        })
+      .catch((err) => {
+          console.log(err);
+          res.render("/views/pug/configure", { errors: [{ msg: "Error: Unable to change precinct numbers. Please try again." }] });
+        })
+      })
 
       
       // app.get("/upload", (req, res) => {
@@ -897,8 +850,7 @@ const mainpageMiddleware = (req, res, next) => {
 const adminMiddleware = (req, res, next) => {
   
   if (req.user) {
-    let index = req.user.current_index;
-    if (req.campaigns[index].paid) {
+    if (req.user.paid) {
       next();
     }
     else {

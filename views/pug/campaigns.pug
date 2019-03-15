@@ -1,0 +1,27 @@
+html(lang="en")
+  head
+    title Login
+    meta(name="description" content="A cool thing made with Glitch")
+    link#favicon(rel="icon" href="https://glitch.com/edit/favicon-app.ico" type="image/x-icon")
+    meta(charset="utf-8")
+    meta(http-equiv="X-UA-Compatible" content="IE=edge")
+    meta(name="viewport" content="width=device-width, initial-scale=1")
+    link(rel="stylesheet" href="/loginstyle.css")
+    link(rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css")
+    script(src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous")
+    script(src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous")
+    
+  body
+    div.container.container-fluid
+      div.login-page
+        h3 Choose your campaign
+        div.form
+          form.login-form(method="POST" action="/campaigns")
+            div.dropdown
+              button#dropdown.btn.btn-secondary.dropdown-toggle(type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false") Dropdown
+              div.dropdown-menu(aria-labelledby="dropdown")
+                for campaign, i in campaigns
+                  button.dropdown-item"(id=campaign.public_name name=campaign.public_name type="button")=campaign.public_name
+            button(type=submit) Choose
+            p.message Need to choose a different account?
+              a(href="/logout") Logout
