@@ -58,7 +58,7 @@ $(document).on("click", ".fa-times-circle", (e) => {
       url: "/deletepollwatcher",
       method: "POST",
       data: { clickedId },
-      success: () => { console.log("success") },
+      success: () => location.reload(),
       failure: () => { console.log("failure") }
     });
   }, 5000);

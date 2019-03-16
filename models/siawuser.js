@@ -16,7 +16,7 @@ const siawuserSchema = mongoose.Schema({
   database: { type: String, default: "" },
   public_name: { type: String, default: "" },
   admin: { type: Boolean, required: true, default: false }, // needs to be changed for admins
-  paid: { type: Boolean, required: true, default: false } ,// only for admins
+  paid: { type: Boolean, required: true, default: false }, // only for admins
   authenticated: { type: Boolean, default: false }
 });
 

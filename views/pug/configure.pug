@@ -16,22 +16,33 @@ block main
     if successes
       for success, i in successes
         div.alert.alert-success #{success.msg}
-  h1 Opponents
-  p Add the list of your opponents here to increase the usability of your app.
+  h1 Campaign Configuration
+  p Make changes to your campaign here.
   p When you add your opponents, your pollwatchers can report voting totals at the end of the day right through the app and you can see them directly on your admin panel
-  form(action="/addopponents" method="POST")
+  form(action="/campaignconfiguration" method="POST")
     div.row
       div.col
-        label(for="opponents") Opponent*
-        small#opponenthelp.form-text.text-muted Enter all of your opponent names, first and last. Separate opponents with a comma (Dwight D. Eisenhower, John F. Kennedy, Woodrow Wilson)
+        label(for="opponents") Opponents*
+        small#opponenthelp.form-text.text-muted Enter all of your opponent names, first and last. Separate opponents with a comma (e.g.: Dwight D. Eisenhower, John F. Kennedy, Woodrow Wilson)
         input#opponents.form-control(name="opponents" type="text" placeholder="Enter opponent names")
-    button.btn.btn-primary(type="submit") Submit
-    
-  h1 Precincts
-  p Update the number of precincts in your ward
-  form(action="/changeprecincts" method="POST")
+      
     div.row
       div.col
-        label(for="precincts") Number of Precincts*
+        label(for="precincts") Number of Precincts
+        small#precinctshelp.form-text.text-muted Entering the total number of precincts will allow you to see vote totals broken down by precinct, as well as assign pollwatchers to different precincts.
         input#precincts.form-control(name="precincts" type="text" placeholder="Enter number of precincts in your ward")
+
+  h1 User Configureation
+  p Make changes to your user account here.
+  form(action="/changepassword" method="POST")
+    div.row
+      div.col
+        label(for="password") Change Password
+        small#oldpasswordhelp.form-text.text-muted Enter all of your opponent names, first and last. Separate opponents with a comma (e.g.: Dwight D. Eisenhower, John F. Kennedy, Woodrow Wilson)
+        input#oldpassword.form-control(name="oldpassword" type="text" placeholder="Enter current password here")
+        input#newpassword1.form-control(name="newpassword1" type="password" placeholder="Enter new password here")
+        input#newpassword2.form-control(name="newpassword2" type="password" placeholder="Reenter new password here")
+    button.btn.btn-primary(type="submit") Change Password
+
+    
     button.btn.btn-primary(type="submit") Submit

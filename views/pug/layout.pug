@@ -110,4 +110,8 @@ html
                   span   Logout
 
       div.col-10.ml-sm-auto.px-4
+        != messages('message', local)
+        if errors
+          for error, i in errors
+            div.alert.alert-danger #{ error.msg }
         block main

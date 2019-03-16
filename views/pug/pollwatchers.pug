@@ -35,7 +35,7 @@ block main
         div.col-1=item.phone
         div#email.col-2=item.email
         div.col-1=(item.authenitcated ? "Yes" : "No")
-        div.col-1=item.campaigns[index].precinct
+        div.col-1=item.precinct
         div.col-3
           form(action="/changeprecinct/"+(item._id) method="POST")
             - console.log(item._id);
@@ -44,14 +44,3 @@ block main
               span.input-group-btn
                 button.btn.btn-primary(type="submit") Change
       hr
-    
-  // each item, i in arr
-    div(id="section" + (i + 1))
-      div.font-weight-bold
-        button.far.fa-times-circle(id=item._id data-pollwatcher=pollwatcher)
-      div.row
-        div.col-3=item.firstname
-        div.col-3=item.lastname
-        div.col-3=item.address
-        div.col-3=item.phone
-    hr
