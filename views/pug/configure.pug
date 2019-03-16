@@ -33,16 +33,6 @@ block main
         input#precincts.form-control(name="precincts" type="text" placeholder="Enter number of precincts in your ward")
 
   h1 User Configureation
-  p Make changes to your user account here.
-  form(action="/changepassword" method="POST")
-    div.row
-      div.col
-        label(for="password") Change Password
-        small#oldpasswordhelp.form-text.text-muted Enter all of your opponent names, first and last. Separate opponents with a comma (e.g.: Dwight D. Eisenhower, John F. Kennedy, Woodrow Wilson)
-        input#oldpassword.form-control(name="oldpassword" type="text" placeholder="Enter current password here")
-        input#newpassword1.form-control(name="newpassword1" type="password" placeholder="Enter new password here")
-        input#newpassword2.form-control(name="newpassword2" type="password" placeholder="Reenter new password here")
-    button.btn.btn-primary(type="submit") Change Password
-
-    
-    button.btn.btn-primary(type="submit") Submit
+  p To change your password, click the button below. You will receive an email with a link to change your password.
+  a(href="/requestreset")
+    button.btn.btn-primary Request password reset
