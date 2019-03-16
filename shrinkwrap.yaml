@@ -1,4 +1,5 @@
 dependencies:
+  async: 2.6.2
   bcryptjs: 2.4.3
   body-parser: 1.18.3
   connect-flash: 0.1.1
@@ -1719,6 +1720,7 @@ registry: 'https://registry.npmjs.org/'
 shrinkwrapMinorVersion: 9
 shrinkwrapVersion: 3
 specifiers:
+  async: ^2.6.1
   bcryptjs: ^2.4.3
   body-parser: ^1.18.3
   connect-flash: ^0.1.1

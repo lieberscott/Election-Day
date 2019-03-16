@@ -1,0 +1,27 @@
+html(lang="en")
+  head
+    title Login
+    meta(name="description" content="A cool thing made with Glitch")
+    link#favicon(rel="icon" href="https://glitch.com/edit/favicon-app.ico" type="image/x-icon")
+    meta(charset="utf-8")
+    meta(http-equiv="X-UA-Compatible" content="IE=edge")
+    meta(name="viewport" content="width=device-width, initial-scale=1")
+    link(rel="stylesheet" href="/loginstyle.css")
+    link(rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css")
+    script(src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous")
+    script(src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous")
+    
+  body
+    div.container.container-fluid
+      div.login-page
+        != messages('messages', local)
+        if errors
+          for error, i in errors
+            div(class="alert alert-danger") #{error.msg}
+        h3 Reset Password
+        div.form
+          form.login-form(method="POST" action="/requestreset")
+            input(name="email" type="email" placeholder="email")
+            button(type=submit) Request Reset
+            p.message Not registered? 
+              a(href="/register") Create an account

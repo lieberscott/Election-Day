@@ -17,7 +17,9 @@ const siawuserSchema = mongoose.Schema({
   public_name: { type: String, default: "" },
   admin: { type: Boolean, required: true, default: false }, // needs to be changed for admins
   paid: { type: Boolean, required: true, default: false }, // only for admins
-  authenticated: { type: Boolean, default: false }
+  authenticated: { type: Boolean, default: false },
+  resetPassword: String,
+  resetPasswordExpires: Date
 });
 
 module.exports = mongoose.model('Siawuser', siawuserSchema);

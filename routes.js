@@ -1,4 +1,5 @@
 // libraries
+const async = require("async");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const { check, validationResult } = require('express-validator/check');
@@ -449,8 +450,7 @@ module.exports = (app, db) => {
                                 }
                                 else { // SIXTH ELSE: VERIFICATION INSERTED INTO VERIFICATION DATABASE
                                   // send verification email
-                                  const html = '<p>Hi ' + email + ',</p><p>Thank you for signing up with Turnout the Vote!</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://election-day3.glitch.me/verify/' + token + '">https://election-day3.glitch.me/verify/' + token + '</a></p><p> Have a pleasant day!</p>';
-                                  console.log(html);
+                                  const html = '<p>Hi ' + user_first + ',</p><p>Thank you for signing up with Turnout the Vote!</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://election-day3.glitch.me/verify/' + token + '">https://election-day3.glitch.me/verify/' + token + '</a></p><p> Have a pleasant day!</p>';
                                   await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
 
                                   res.redirect("/payment"); // add note about verifying email address (this on-screen message goes to admin though, not pollwatcher)
@@ -788,34 +788,224 @@ module.exports = (app, db) => {
         Siawuser.findOne({ email })
         .exec()
         .then((user) => {
-          bcrypt.compare(oldpassword, user.password, (error, isMatch) => {
+//           bcrypt.compare(oldpassword, user.password, (error, isMatch) => {
  
-            if (error) {
-              console.log(error);
-              res.render("/views/pug/configure", { error: [{ msg: "Old password incorrect. Please" }] });
-            }
-            else {
-              if (isMatch) {
-                console.log(user);
-                return done(null, user);
-              }
-              else {
-                console.log("wrong password");
-                return done(null, false, { message: "Wrong password" });
-              }
-            }
-          });
+//             if (error) {
+//               console.log(error);
+//               res.render("/views/pug/configure", { error: [{ msg: "Old password incorrect. Please" }] });
+//             }
+//             else {
+//               if (isMatch) {
+//                 console.log(user);
+//                 return done(null, user);
+//               }
+//               else {
+//                 console.log("wrong password");
+//                 return done(null, false, { message: "Wrong password" });
+//               }
+//             }
+//           });
+//         });
+          
+          
+          
+          
+//           let currentpassword = user.password;
+//           if (user) {
+//             res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Email already exists" }] });
+//           }
+          
+//           else { // FIRST ELSE: IT IS A NEW USER
+//             bcrypt.genSalt(10, (err, salt) => {
+//               if (err) {
+//                 console.log(err);
+//                 res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Registration error: Please try again" }] });
+//               }
+
+//               else { // SECOND ELSE: PASSWORD SALTED
+//                 bcrypt.hash(pass, salt, (error, hash) => {
+//                   if (error) {
+//                     console.log(error);
+//                     res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Registration error: Please try again" }] });
+//                   }
+//                   else { // THIRD ELSE: PASSWORD HASHED
+                      
+//                     const user = new Siawuser({
+//                       email,
+//                       password: hash,
+//                       user_first,
+//                       user_last,
+//                       ward,
+//                       database,
+//                       public_name,
+//                       admin: true,
+//                       paid: false,
+//                       authenticated: false
+//                     });
+//                     user.save()
+//                     .then((result) => {
+//                       console.log("result! : ", result);
+//                       req.login(user, (login_err) => {
+//                         if (login_err) {
+//                           console.log(error);
+//                           res.redirect("/login"); // add error message about registrtion successful but login failure. pleasa try to login below.
+
+//                         }
+//                         else { // FOURTH ELSE: USER CREATED, AND ABLE TO LOG IN
+                          
+//                           let precincts = [];
+                          
+//                           for (let i = 0; i < no_of_precincts; i++) {
+//                             let obj = {};
+                            
+//                             obj.number = i + 1;
+//                             obj.total_votes = 0;
+//                             obj.last_updated = "";
+//                             obj.updated_by = "";
+//                             obj.opponent_votes = {};
+                            
+//                             precincts.push(obj);
+//                           }
+                          
+//                           let campaign = {
+//                             database,
+//                             public_name,
+//                             ward,
+//                             no_of_precincts,
+//                             candidate_first,
+//                             candidate_last,
+//                             precincts
+//                           }
+
+                          
+//                           Campaign.create(campaign, (campaigns_error, doc) => {
+//                             if (campaigns_error) {
+//                               console.log(campaigns_error);
+//                               res.redirect("/register", { errors: [{ msg: "Error: Database failure. Contact support to help set up database." }] });
+//                             }
+//                             else { // FIFTH ELSE: CAMPAIGN INSERTED INTO CAMPAIGNS DATABASE
+//                               let token = randomstring.generate();
+
+//                               let verification = {
+//                                 email,
+//                                 token,
+//                                 expireAfterSeconds: 172800
+//                               };
+                              
+//                               db.collection("verification").insertOne(verification, async (verification_err, ver) => {
+
+//                                 if (verification_err) {
+//                                   console.log(err);
+//                                   res.render("/register", { errors: [{ msg: "Error: Account created, but verification email failed. Log in to request another verificaiton email to verify your account." }] });
+//                                 }
+//                                 else { // SIXTH ELSE: VERIFICATION INSERTED INTO VERIFICATION DATABASE
+//                                   // send verification email
+//                                   const html = '<p>Hi ' + email + ',</p><p>Thank you for signing up with Turnout the Vote!</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://election-day3.glitch.me/verify/' + token + '">https://election-day3.glitch.me/verify/' + token + '</a></p><p> Have a pleasant day!</p>';
+//                                   console.log(html);
+//                                   await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
+
+//                                   res.redirect("/payment"); // add note about verifying email address (this on-screen message goes to admin though, not pollwatcher)
+//                                 }
+//                               });
+//                             }
+//                           })
+                    //      }
+                    //   })
+                    // })
+            //         .catch((catch_err) => {
+            //           console.log(catch_err);
+            //           res.render("/register", { errors: [{ msg: "There was an error with your registration. That's all we know right now. Please contact support for help." }] });
+            //         });
+            //       };
+            //     })
+            //   }
+            // });
+          })
+        
+        
+        
+        
+      });
+      
+      app.get("/requestreset", (req, res) => {
+        res.render(process.cwd() + "/views/pug/requestreset");
+      });
+      
+      app.post("/requestreset", (req, res) => {
+        let token = randomstring.generate();
+
+        let email = req.body.email.toLowerCase();
+
+        let date = Date.now() + 3600000;
+        
+        console.log("token : ", token);
+
+        Siawuser.findOne({ email }, async (err, user) => {
+          if (err) {
+            console.log(err);
+            return res.render(process.cwd() + "/views/pug/requestreset", { errors: [{ msg: "Email does not exist." }] });
+          }
+
+          else { // User found
+            console.log("hello inside user");
+            user.resetPassword = token;
+            user.resetPasswordExpires = date;
+            user.save();
+
+            let user_first = user.user_first;
+
+            const html = '<p>Hi ' + user_first + ',</p><p>A password reset was recently requested for this email address</p><p>To change your password, use the following link:</p><p><a href="https://election-day3.glitch.me/resetpassword/' + token + '">https://election-day3.glitch.me/resetpassword/' + token + '"</a>. This request will expire in one hour.</p><p>If you didn\'t make this request, you can ignore this message and your password will remain unchanged.</p><p>Have a pleasant day!</p>';
+            console.log("html");
+            await sendEmail("scott@voterturnout.com", email, "Your password reset request", html);
+            console.log("html2");
+
+            req.flash("success", "An email has been sent to the email address you provided. Click the link to reset your password. This request is only valid for one hour.");
+            res.redirect("/login");
+          }
         });
-          
-          
-          
-          
-          let currentpassword = user.password;
-          if (user) {
-            res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Email already exists" }] });
+
+      });
+      
+      app.get("/resetpassword/:token", (req, res) => {
+        
+        let token = req.params.token;
+        
+        Siawuser.findOne({ resetPassword: token, resetPasswordExpires: { $gte: Date.now() } }, (err, user) => {
+          if (err) {
+            console.log(err);
+            req.flash("error", "Password reset is invalid or has expired.");
+            res.render(process.cwd() + "/views/pug/resetpassword", { errors: [{ msg: "Password reset is invalid or has expired." }] });
           }
           
-          else { // FIRST ELSE: IT IS A NEW USER
+          else {
+            res.render(process.cwd() + "/views/pug/resetpassword", { token });
+          }
+        });        
+      });
+      
+      app.post("/resetpassword/:token", [
+        check('password').isLength({ min: 8 }).withMessage("Password must be at least 8 characters"),
+        check("confirmpassword").custom((val, {req, loc, path}) => {
+          if (val !== req.body.password) {
+            throw new Error("Passwords don't match");
+          }
+          else {
+            return val;
+          }
+        })
+        ], (req, res) => {
+        
+        let token = req.params.token;
+        let pass = req.body.password;
+        
+        Siawuser.findOne({ resetPassword: token, resetPasswordExpires: { $gte: Date.now() } }, (err, user) => {
+          if (err) {
+            console.log(err);
+            req.flash("error", "Password reset is invalid or has expired.");
+            res.render(process.cwd() + "/views/pug/resetpassword", { errors: [{ msg: "Password reset is invalid or has expired." }] });
+          }
+          
+          else { // FIRST ELSE: USER FOUND
             bcrypt.genSalt(10, (err, salt) => {
               if (err) {
                 console.log(err);
@@ -829,103 +1019,28 @@ module.exports = (app, db) => {
                     res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Registration error: Please try again" }] });
                   }
                   else { // THIRD ELSE: PASSWORD HASHED
+                    user.password = hash;
+                    user.save();
+                    req.login(user, (login_err) => {
+                      if (login_err) {
+                        console.log(login_err);
+                        req.flash("error", "Login successful, but unable to log in. Please try logging in below.");
+                      }
                       
-                    const user = new Siawuser({
-                      email,
-                      password: hash,
-                      user_first,
-                      user_last,
-                      ward,
-                      database,
-                      public_name,
-                      admin: true,
-                      paid: false,
-                      authenticated: false
+                      else { // FOURTH ELSE: USER SAVED AND LOGGING IN
+                        req.flash("success", "Password successfully changed.");
+                        res.redirect("/admin");
+                      }
+                      
                     });
-                    user.save()
-                    .then((result) => {
-                      console.log("result! : ", result);
-                      req.login(user, (login_err) => {
-                        if (login_err) {
-                          console.log(error);
-                          res.redirect("/login"); // add error message about registrtion successful but login failure. pleasa try to login below.
-
-                        }
-                        else { // FOURTH ELSE: USER CREATED, AND ABLE TO LOG IN
-                          
-                          let precincts = [];
-                          
-                          for (let i = 0; i < no_of_precincts; i++) {
-                            let obj = {};
-                            
-                            obj.number = i + 1;
-                            obj.total_votes = 0;
-                            obj.last_updated = "";
-                            obj.updated_by = "";
-                            obj.opponent_votes = {};
-                            
-                            precincts.push(obj);
-                          }
-                          
-                          let campaign = {
-                            database,
-                            public_name,
-                            ward,
-                            no_of_precincts,
-                            candidate_first,
-                            candidate_last,
-                            precincts
-                          }
-
-                          
-                          Campaign.create(campaign, (campaigns_error, doc) => {
-                            if (campaigns_error) {
-                              console.log(campaigns_error);
-                              res.redirect("/register", { errors: [{ msg: "Error: Database failure. Contact support to help set up database." }] });
-                            }
-                            else { // FIFTH ELSE: CAMPAIGN INSERTED INTO CAMPAIGNS DATABASE
-                              let token = randomstring.generate();
-
-                              let verification = {
-                                email,
-                                token,
-                                expireAfterSeconds: 172800
-                              };
-                              
-                              db.collection("verification").insertOne(verification, async (verification_err, ver) => {
-
-                                if (verification_err) {
-                                  console.log(err);
-                                  res.render("/register", { errors: [{ msg: "Error: Account created, but verification email failed. Log in to request another verificaiton email to verify your account." }] });
-                                }
-                                else { // SIXTH ELSE: VERIFICATION INSERTED INTO VERIFICATION DATABASE
-                                  // send verification email
-                                  const html = '<p>Hi ' + email + ',</p><p>Thank you for signing up with Turnout the Vote!</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://election-day3.glitch.me/verify/' + token + '">https://election-day3.glitch.me/verify/' + token + '</a></p><p> Have a pleasant day!</p>';
-                                  console.log(html);
-                                  await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
-
-                                  res.redirect("/payment"); // add note about verifying email address (this on-screen message goes to admin though, not pollwatcher)
-                                }
-                              });
-                            }
-                          })
-                        }
-                      })
-                    })
-                    .catch((catch_err) => {
-                      console.log(catch_err);
-                      res.render("/register", { errors: [{ msg: "There was an error with your registration. That's all we know right now. Please contact support for help." }] });
-                    });
-                  };
+                  }
                 })
               }
-            });
+            })
           }
-        
-        
-        
-        
+        });        
       });
+      
       
       // app.get("/upload", (req, res) => {
       //   db.collection('siaw').insertMany([], (err, doc) => {
