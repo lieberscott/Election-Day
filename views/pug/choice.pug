@@ -14,42 +14,9 @@ block main
     if errors
       for error, i in errors
         div(class="alert alert-danger") #{error.msg}
-    h3 Login
+    h3 Welcome to the campaign!
     div
       button
-        a(href="/") Pollwatcher
+        a(href="/watch") Watch the polls
       button
         a(href="/report") Report Voter Numbers
-    form(action="/addfile" method="POST" enctype="multipart/form-data")
-      div #{typeof msg != 'undefined' ? msg : ""}
-      input#myFile(type="file" name="file")
-      button(type="submit") Upload File
-    if file
-      - let keys = Object.keys(file[0]);
-      - let n = 0;
-      div Make sure you're file looks like this
-      div.row
-        div.col-1 lastname
-        div.col-1 firstname
-        div.col-1 address
-        div.col-1 phone
-        div.col-1 ward
-        div.col-1 precinct
-        div.col-1 voted
-      hr
-      
-      div My data is correct
-        form(action="/addtomongo" method="GET")
-          button(type="submit") Add to Database
-      
-      div.row
-        each item in keys
-          div(class="col-1")= item
-      hr
-      while n < 10
-        div.row
-          each item in keys
-            div(class="col-1")=file[n][item]
-          div(class="col-1")=n
-        hr
-        - n++;

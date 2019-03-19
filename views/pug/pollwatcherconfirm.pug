@@ -1,6 +1,6 @@
 html(lang="en")
   head
-    title Login
+    title Election Day App
     meta(name="description" content="A cool thing made with Glitch")
     link#favicon(rel="icon" href="https://glitch.com/edit/favicon-app.ico" type="image/x-icon")
     meta(charset="utf-8")
@@ -18,11 +18,13 @@ html(lang="en")
         if errors
           for error, i in errors
             div(class="alert alert-danger") #{error.msg}
-        h3 Login
+        h3 Confirm your account
         div.form
-          form.login-form(method="POST" action="/login")
-            input(name="username" type="text" placeholder="user")
-            input(name="password" type="password" placeholder="password")
-            button(type=submit) Login
+          form.login-form(method="POST" action="/pollwatcherconfirm")
+            input.form-control(name="token" type="text" placeholder="Enter token")
+            input.form-control(name="email" type="text" placeholder="Enter email")
+            input.form-control(name="password" type="text" placeholder="Enter password")
+            input.form-control(name="confirmpassword" type="text" placeholder="Confirm password")
+            button(type="submit") Confirm registration
             p.message Not registered? 
               a(href="/register") Create an account

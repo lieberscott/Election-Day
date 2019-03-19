@@ -66,23 +66,39 @@ module.exports = (app, db) => {
         console.log("hello2");
         res.redirect("/login");
         
-        /*
-        let ward = req.user.ward;
-        let precinct = req.user.precinct;
+      });
+      
+      app.get("/watch", (req, res) => {
+        if (req.user) {
+          let database = req.user.database;
+          let precinct = req.user.precinct;
+          let ward = req.user.ward;
 
-        db.collection('siaw').find( { ward: ward, precinct: precinct, voted: 0 }, { sort: { lastname: 1 } }, (err, cursor) => {
-          if (err) { console.log(err); }
-          else {
-            let arr = [];
-            cursor.toArray()
+          db.collection(database).find( { ward, precinct, voted: 0 }, { sort: { lastname: 1 } }, (err, cursor) => {
+            if (err) {
+              console.log(err);
+              req.flash("error", "Database error: Please try again");
+              res.redirect("/choice");
+            }
+            else {
+              let arr = [];
+              cursor.toArray()
               .then((docs) => {
                 arr = docs;
-              console.log("docs : ", docs);
-              console.log("arr : ", arr);
-              res.render(process.cwd() + '/views/pug/index', { arr });
-            });
-          }
-        }); */
+                res.render(process.cwd() + '/views/pug/watch', { arr });
+              })
+              .catch((error) => {
+                console.log(error);
+                req.flash("error", "Error retrieving records: Please try again");
+                res.redirect("/choice");
+              });
+            }
+          });
+        }
+        else {
+          req.flash("error", "You must be logged in to view that content.");
+          res.render(process.cwd() + "/views/pug/login.pug");
+        }
       });
       
       app.get("/upload", (req, res) => {
@@ -100,6 +116,7 @@ module.exports = (app, db) => {
               res.render(process.cwd() + "/views/pug/upload.pug", { msg: "Error: No file selected" });
             }
             else {
+              console.log("file");
               const csvFilePath = "public/uploads/" + req.file.filename;
               filename = req.file.filename;
               csv()
@@ -558,16 +575,12 @@ module.exports = (app, db) => {
           precinct,
           database,
           public_name,
+          verification_token: token,
           admin: false,
           paid: false,
           authenticated: false
         });
         
-        let verification = {
-          email,
-          token,
-          expireAfterSeconds: 172800
-        };
         
         Siawuser.create(user, async (err, doc) => {
           
@@ -580,7 +593,7 @@ module.exports = (app, db) => {
           
           else { // no errors
             
-            const html = '<p>Hi ' + user_first + ',</p><p>You have been requested to join the ' + public_name + ' campaign.</p><p>Use the following link to create an account and complete your registration:</p><p><a href="https://election-day3.glitch.me/resetpassword/' + token + '">https://election-day3.glitch.me/resetpassword/' + token + '</a></p><p>This request will expire in one hour.</p><p>Have a pleasant day!</p>';
+            const html = '<p>Hi ' + user_first + ',</p><p>You have been requested to join the ' + public_name + ' campaign.</p><p>Your token is ' + token + '</p><p>Use the following link to create an account and complete your registration:</p><p><a href="https://election-day3.glitch.me/pollwatcherconfirm">https://election-day3.glitch.me/pollwatcherconfirm</a></p><p>Have a pleasant day!</p>';
             
             
             await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
@@ -595,9 +608,9 @@ module.exports = (app, db) => {
       
       app.post("/deletepollwatcher", (req, res) => {
         let id = req.body.clickedId;
-        let database = req.user.catabase;
+        let database = req.user.database; // <- necessary?
         
-        Siawuser.findOneAndURemove({ _id: id }, (err, doc) => {
+        Siawuser.findOneAndRemove({ _id: id }, (err, doc) => {
           if (err) { console.log(err); }
           else {
 
@@ -965,6 +978,7 @@ module.exports = (app, db) => {
                         if (login_err) {
                           console.log(login_err);
                           req.flash("error", "Authentication successful, but unable to log in. Please try logging in below.");
+                          res.redirect("/login");
                         }
 
                         else { // FOURTH ELSE: USER SAVED AND LOGGING IN

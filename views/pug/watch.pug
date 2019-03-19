@@ -1,0 +1,30 @@
+extends layout.pug
+
+block extralink
+  link(rel="stylesheet" href="/style.css")
+
+block extrascript
+  script(src="https://code.jquery.com/jquery-3.3.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous")
+  script(src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous")
+  script(src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous")
+  script(src="/client.js" defer)
+  
+block main
+  h1 Precinct #{arr[0].precinct}
+  p Voters
+  div.row.font-weight-bold
+    div.col-3 First name
+    div.col-3 Last name
+    div.col-3 Address
+    div.col-3 Phone
+  hr
+  each item, i in arr
+    div(id="section" + (i + 1))
+      div.font-weight-bold
+        button.far.fa-times-circle(id=item._id data-pollwatcher=pollwatcher)
+      div.row
+        div.col-3=item.firstname
+        div.col-3=item.lastname
+        div.col-3=item.address
+        div.col-3=item.phone
+    hr
