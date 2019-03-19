@@ -14,9 +14,15 @@ block main
       for error, i in errors
         div(class="alert alert-danger") #{error.msg}
 
-    h3 Voter totals for Precinct #{precinct}
+    h3 Voter totals for Precinct #{ precinct }
     div.form
       form.login-form(method="POST" action="/report")
+        - let candidates = Object.keys(doc.precincts[0].opponent_votes)
+        for candidate in candidates
+          div.row
+            label(for=candidate)=candidate
+            input(name=candidate type="text" placeholder="votes")
         div.row
-          input(name="number" type="text" placeholder="votes")
+          label(for="total") Total precinct votes
+          input(name="total" placeholder="votes")
         button(type=submit) Submit

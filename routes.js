@@ -133,48 +133,62 @@ module.exports = (app, db) => {
       
       app.post("/addtomongo", (req, res) => {
         
-        let opt = req.body.radios; // "addto" or "override"
-        
-        const csvFilePath = "public/uploads/" + filename;
-        csv()
-        .fromFile(csvFilePath)
-        .then((jsonObj)=> {
-          
-          if (opt == "override") {
-            Siaw.remove({}, (err, removed) => {
-              if (err) { res.render(process.cwd() + "/views/pug/upload.pug", { msg: "Error: Please try again" }); }
-              else {
-                Siaw.insertMany(jsonObj, (err, doc) => {
-                  if (err) {
-                    res.render(process.cwd() + "/views/pug/upload.pug", { msg: "Error: Please try again" });
-                  }
-                  else {
-                    console.log("success!");
+        if (req.user) {
+          let opt = req.body.radios; // "addto" or "override"
+          let database = req.user.database;
+
+          const csvFilePath = "public/uploads/" + filename;
+          csv()
+          .fromFile(csvFilePath)
+          .then((jsonObj)=> {
+
+            if (opt == "override") {
+              db.collection(database).remove({}, (err, removed) => {
+                if (err) {
+                  req.flash("error", "Error: Please try again.");
+                  res.render(process.cwd() + "/views/pug/upload.pug");
+                }
+                else {
+                  db.collection(database).insertMany(jsonObj, (err, doc) => {
+                    if (err) {
+                      req.flash("error", "Error: Current documents deleted, but unable to add new items. Please try again.");
+                      res.render(process.cwd() + "/views/pug/upload.pug");
+                    }
+                    else {
+                      console.log("success!");
+                      req.flash("success", "File uploaded");
+                      res.render(process.cwd() + "/views/pug/upload.pug");
+                    }
+                  });
+                }
+              });
+            }
+
+            else if (opt == "addto") {
+              db.collection(database).insertMany(jsonObj, { ordered: false }, (err, doc) => {
+                if (err) {
+                  if (err.result.result.ok >= 1) { // insertmany had conflicts with van_id, but some items were new
                     res.render(process.cwd() + "/views/pug/upload.pug", { msg: "File uploaded" });
                   }
-                });
-              }
-            });
-          }
-          
-          else if (opt == "addto") {
-            Siaw.insertMany(jsonObj, { ordered: false }, (err, doc) => {
-              if (err) {
-                if (err.result.result.ok >= 1) { // insertmany had conflicts with van_id, but some items were new
-                  res.render(process.cwd() + "/views/pug/upload.pug", { msg: "File uploaded" });
+                  else { // insertmany had conflicts with van_id, and none of the items were new
+                    req.flash("error", "Documents failed to upload. Please try again.");
+                    res.render(process.cwd() + "/views/pug/upload.pug");
+                  }
                 }
-                else { // insertmany had conflicts with van_id, and none of the items were new
-                  res.render(process.cwd() + "/views/pug/upload.pug", { msg: "Error: Please try again" });
+                else {
+                  console.log("success!");
+                  req.flash("success", "Documents added!");
+                  res.render(process.cwd() + "/views/pug/upload.pug");
                 }
-              }
-              else {
-                console.log("success!");
-                res.render(process.cwd() + "/views/pug/upload.pug", { msg: "File uploaded" });
-              }
-            });
-          }
-
-        });
+              });
+            }
+          })
+        }
+        
+        else {
+          req.flash("error", "You must be logged in to access that route");
+          res.redirect("/login");
+        }
       });
       
       app.post("/stripe", (req, res) => {
@@ -276,17 +290,48 @@ module.exports = (app, db) => {
         res.render(process.cwd() + "/views/pug/choice.pug");
       });
       
-      app.get("/report", mainpageMiddleware, (req, res) => {
-        
+      app.get("/report", /* mainpageMiddleware, */ (req, res) => {
         let precinct = req.user.precinct;
-        
-        res.render(process.cwd() + "/views/pug/report.pug", { precinct });
+        let database = req.user.database;
+
+        db.collection("campaigns").findOne({ database }, (err, doc) => {
+          if (err) {
+            console.log(err);
+            req.flash("error", "Could not retrieve data. Please try again.");
+            res.render(process.cwd() + "/views/pug/report");
+          }
+
+          else {
+            console.log(doc);
+            res.render(process.cwd() + "/views/pug/report", { doc, precinct });
+          }
+
+        })
       });
       
       app.post("/report", (req, res) => {
         
+        console.log("hello");
+        
         let precinct = req.user.precinct;
-        let num = Number(req.body.number);
+        let database = req.user.database;
+        let opponent_votes = req.body;
+        let total_votes = req.body.total;
+        delete opponent_votes.total;
+        
+        let candidates = Object.keys(opponent_votes);
+        let len = candidates.length;
+        
+        for (let i = 0; i < len; i++) {
+          let candidate = candidates[i];
+          let str = opponent_votes[candidate];
+          let num = parseInt(str);
+          opponent_votes[candidate] = num;
+        }
+        
+        console.log(opponent_votes);
+        console.log(total_votes);
+        
         
         let tempdate= new Date().toString().split("GMT+0000 (UTC)")[0].split(" 2019");
         let d = tempdate[1].split(":");
@@ -303,13 +348,15 @@ module.exports = (app, db) => {
         let date = tempdate[0] + " " + t + ":" + d[1] + ":" + d[2];
         
         
-        // check if email is already registered
-        db.collection("siawvoteresults").update({ precinct }, {
-          precinct, num, date
-        }, { upsert: true }, (err, doc) => {
+        // update database
+        db.collection("campaigns").updateOne({ database, "precincts.number": precinct },{
+          $set: { "precincts.$.opponent_votes": opponent_votes },
+          $set: { "precincts.$.total_votes": total_votes }
+        }, (err, doc) => {
           if (err) { console.log(err); }
           else {
-            res.redirect("/");
+            console.log("doc : ", doc);
+            res.redirect("/report");
           }
         })
       });

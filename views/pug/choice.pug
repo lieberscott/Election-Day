@@ -1,6 +1,7 @@
 extends layout.pug
 
 block extralink
+  link(rel="stylesheet" href="/choicestyle.css")
 
 block extrascript
   script(src="https://code.jquery.com/jquery-3.3.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous")
@@ -16,7 +17,9 @@ block main
         div(class="alert alert-danger") #{error.msg}
     h3 Welcome to the campaign!
     div
-      button
-        a(href="/watch") Watch the polls
-      button
-        a(href="/report") Report Voter Numbers
+      div.row
+        div.col
+          a.btn.btn-warning.btn-block(href="/watch") Watch the polls
+      div.row
+        div.col
+          a.btn.btn-dark.btn-block(href="/report") Report Voter Numbers
