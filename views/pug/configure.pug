@@ -16,23 +16,35 @@ block main
     if successes
       for success, i in successes
         div.alert.alert-success #{success.msg}
-  h1 Campaign Configuration
-  p Make changes to your campaign here.
-  p When you add your opponents, your pollwatchers can report voting totals at the end of the day right through the app and you can see them directly on your admin panel
-  form(action="/campaignconfiguration" method="POST")
-    div.row
-      div.col
-        label(for="opponents") Opponents*
-        small#opponenthelp.form-text.text-muted Enter all of your opponent names, first and last. Separate opponents with a comma (e.g.: Dwight D. Eisenhower, John F. Kennedy, Woodrow Wilson)
+  h1 Campaign configuration
+  h5 Opponents
+  p Add the list of your opponents here. This will allow pollwatchers to add the votes at their location for each candidate after polls close., e.g.:
+  h6 Precinct 1
+  p George Washington: 35
+  p Thomas Jefferson 31
+  p John Adams 22
+  p You can see the results 
+    a(href="/votertotals") here
+  form(action="/addopponents" method="POST")
+    div.form-group
+      small#opponenthelp.form-text.text-muted Enter ALL of your opponent names, first and last. Separate opponents with a comma (Dwight D. Eisenhower, John F. Kennedy, Woodrow Wilson)
+      small#opponenthelp2.form-text.text-muted This will override your current list of opponents.
+    div.form-row
+      div.form-group.col-10
         input#opponents.form-control(name="opponents" type="text" placeholder="Enter opponent names")
-      
-    div.row
-      div.col
-        label(for="precincts") Number of Precincts
-        small#precinctshelp.form-text.text-muted Entering the total number of precincts will allow you to see vote totals broken down by precinct, as well as assign pollwatchers to different precincts.
-        input#precincts.form-control(name="precincts" type="text" placeholder="Enter number of precincts in your ward")
+    button.btn.btn-success(type="submit") Enter opponents
+  
+  h5 Number of precincts
+  p When you registered, you entered the total number of precincts in your ward. If you made a mistake, update the number below.
+  p Update the TOTAL number of precincts in your ward (e.g.: 40)
+  form(action="/changeprecincts" method="POST")
+    div.form-group
+      div.form-row
+        div.form-group.col-2
+          input#precincts.form-control(name="precincts" type="text" placeholder="Number")
+      button.btn.btn-success(type="submit") Change number of precincts
 
   h1 User Configureation
   p To change your password, click the button below. You will receive an email with a link to change your password.
-  a(href="/requestreset")
+  a(href="/requestreset" target="_blank")
     button.btn.btn-primary Request password reset

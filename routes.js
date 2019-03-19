@@ -297,16 +297,16 @@ module.exports = (app, db) => {
         })
       });
       
-      app.get("/totals", adminMiddleware, (req, res) => {
-        db.collection('siawvoteresults').find({ }, { sort: { precinct: 1 } }, (err, cursor) => {
+      app.get("/electionresults", adminMiddleware, (req, res) => {
+        
+        let database = req.user.database;
+        
+        db.collection('campaigns').findOne({ database }, (err, doc) => {
           if (err) { console.log(err); }
           else {
-            let arr = [];
-            cursor.toArray()
-              .then((docs) => {
-                arr = docs;
-              res.render(process.cwd() + '/views/pug/totals', { arr, admin: true });
-            });
+            let obj = {};
+            obj = doc;
+            res.render(process.cwd() + '/views/pug/electionresults', { obj, admin: true });
           }
         })
       });
@@ -409,7 +409,7 @@ module.exports = (app, db) => {
                             let obj = {};
                             
                             obj.number = i + 1;
-                            obj.total_votes = 0;
+                            obj.total_votes = 1;
                             obj.last_updated = "";
                             obj.updated_by = "";
                             obj.opponent_votes = {};
@@ -477,7 +477,8 @@ module.exports = (app, db) => {
       });
       
       app.get("/admin", /* adminMiddleware, */ (req, res) => {
-        res.render(process.cwd() + '/views/pug/admin', { admin: true  });
+        let admin = req.user.admin;
+        res.render(process.cwd() + '/views/pug/admin', { admin });
       });
       
       
@@ -537,8 +538,8 @@ module.exports = (app, db) => {
         
         // pollwatcher variables
         const email = req.body.email.toLowerCase();
-        const first = req.body.firstname || "";
-        const last = req.body.lastname || "";
+        const user_first = req.body.firstname || "";
+        const user_last = req.body.lastname || "";
         const precinct = req.body.precinct || "";
         
         // campaign variables
@@ -551,8 +552,8 @@ module.exports = (app, db) => {
         
         let user = new Siawuser({
           email,
-          user_first: first,
-          user_last: last,
+          user_first,
+          user_last,
           ward,
           precinct,
           database,
@@ -568,16 +569,23 @@ module.exports = (app, db) => {
           expireAfterSeconds: 172800
         };
         
-        Siawuser.create(user, (err, doc) => {
+        Siawuser.create(user, async (err, doc) => {
           
           if (err) {
             console.log("add pollwatcher error : ", err);
-            // req.flash("danger", "User already signed up for another campaign. If user is not in your campaign, and you want them for your campaign, they must delete their current account and have you invte them to your campaign.");
+            req.flash("danger", "User already signed up for another campaign. If user is not in your campaign, and you want them for your campaign, they must delete their current account and have you invte them to your campaign.");
             console.log(req.flash);
             res.render(process.cwd() + "/views/pug/addpollwatcher", { errors: [{ msg: "Second message for testing purposes" }] });
           }
           
           else { // no errors
+            
+            const html = '<p>Hi ' + user_first + ',</p><p>You have been requested to join the ' + public_name + ' campaign.</p><p>Use the following link to create an account and complete your registration:</p><p><a href="https://election-day3.glitch.me/resetpassword/' + token + '">https://election-day3.glitch.me/resetpassword/' + token + '</a></p><p>This request will expire in one hour.</p><p>Have a pleasant day!</p>';
+            
+            
+            await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
+            
+            
             req.flash("success", "User added. Have user check their email to authenticate their account.");
             res.render(process.cwd() + "/views/pug/addpollwatcher", { errors: [{ msg: "Second message for testing purposes" }] });
           }
@@ -633,25 +641,35 @@ module.exports = (app, db) => {
           } // send an error message to page
           else { // user was found
             
-            let email = user.email;
-            let real_token = user.token;
-            
-            Siawuser.findOneAndUpdate({ email }, { authenticated: true }, (error, doc) => {
-              if (err) {
-                console.log(err);
-                res.render(process.cwd() + "/views/pug/verified", { msg: "Verification failed: Unknown error" });
-              }
-              else {
-                
-                if (real_token == clicked_token) { // token matches
-                  res.render(process.cwd() + "/views/pug/verified", { msg: "You are now verified" });
+            if (user) {
+
+              let email = user.email;
+              let real_token = user.token;
+
+              Siawuser.findOneAndUpdate({ email }, { authenticated: true }, { new: true }, (error, doc) => {
+                if (err) {
+                  console.log(err);
+                  res.render(process.cwd() + "/views/pug/verified", { msg: "Verification failed: Unknown error" });
                 }
-                else { // token doesn't match
-                  res.render(process.cwd() + "/views/pug/verified", { msg: "Verification failed: Token incorrect" });
+                else {
+
+                  let admin = doc.admin;
+                  console.log(admin);
+
+                  if (real_token == clicked_token) { // token matches
+                    res.render(process.cwd() + "/views/pug/verified", { msg: "You are now verified" });
+                  }
+                  else { // token doesn't match
+                    res.render(process.cwd() + "/views/pug/verified", { msg: "Verification failed: Token incorrect" });
+                  }
                 }
-              }
-            });
+              });
+
+            }
             
+            else { // no user found
+              res.render(process.cwd() + "/views/pug/verified", { msg: "No user found" });
+            }
           }
         });
       });
@@ -682,7 +700,19 @@ module.exports = (app, db) => {
         res.render(process.cwd() + "/views/pug/configure", { admin: true });
       });
       
-      app.post("/addopponents", (req, res) => {
+      app.post("/addopponents", [
+        check("opponents").custom((val) => {
+          
+          let len = val.split(",").length - 1;
+          
+          if (len >= 10) {
+            throw new Error("Our application only supports 10 candidates max at this time.");
+          }
+          else {
+            return val;
+          }
+        })
+        ], checkValidationResult, (req, res) => {
         
         let database = req.user.database;
         
@@ -729,13 +759,14 @@ module.exports = (app, db) => {
           console.log("doc : ", doc);
 
           // Step 1: Check if user added or subtracted precincts
-          // Step 2: If lowered, pop off the difference from the document array
-          // Step 3: If increased, copy the first precinct object in the campaign, create a loop so you change the precinct_number to the old total number of precincts + 1, push into array. Repeat until you reach the new total number of precincts
+          // Step 2: If subtracted, pop off the difference from the document array
+          // Step 3: If added, copy the first precinct object in the campaign, create a loop so you change the precinct_number to the old total number of precincts + 1, push into array. Repeat until you reach the new total number of precincts
 
           let difference = doc.no_of_precincts - new_no_of_precincts; // will be positive or negative
           let precincts = doc.precincts; // Array of objects
+          console.log("precincts : ", precincts);
           let len = precincts.length; // will be 1 by default, or some larger positive number if user specified so during registration
-
+          console.log("len : ", len);
 
           console.log("doc.no_of_precincts : ", doc.no_of_precincts);
           console.log("new_no_of_precincts : ", new_no_of_precincts);
@@ -755,9 +786,11 @@ module.exports = (app, db) => {
           else if (difference < 0) { // admin increased the number of precincts, so need to add them
 
             let obj = doc.precincts[0];
+            console.log("obj : ", obj);
 
             for (let i = 0; i > difference; i--) {
               len++; // increase last precinct added by one, so if user previously identified 40 precincts, this number is now 41
+              console.log("len++ : ", len);
               obj.number = len; // 41st precinct
               doc.precincts.push(obj); // push object into precincts array
             }
@@ -778,154 +811,6 @@ module.exports = (app, db) => {
         })
       })
 
-      app.post("/changepassword", (req, res) => {
-        let oldpassword = req.body.oldpassword;
-        let newpassword1 = req.body.newpassword1;
-        let newpassword2 = req.body.newpassword2;
-        
-        let email = req.user.email;
-        
-        Siawuser.findOne({ email })
-        .exec()
-        .then((user) => {
-//           bcrypt.compare(oldpassword, user.password, (error, isMatch) => {
- 
-//             if (error) {
-//               console.log(error);
-//               res.render("/views/pug/configure", { error: [{ msg: "Old password incorrect. Please" }] });
-//             }
-//             else {
-//               if (isMatch) {
-//                 console.log(user);
-//                 return done(null, user);
-//               }
-//               else {
-//                 console.log("wrong password");
-//                 return done(null, false, { message: "Wrong password" });
-//               }
-//             }
-//           });
-//         });
-          
-          
-          
-          
-//           let currentpassword = user.password;
-//           if (user) {
-//             res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Email already exists" }] });
-//           }
-          
-//           else { // FIRST ELSE: IT IS A NEW USER
-//             bcrypt.genSalt(10, (err, salt) => {
-//               if (err) {
-//                 console.log(err);
-//                 res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Registration error: Please try again" }] });
-//               }
-
-//               else { // SECOND ELSE: PASSWORD SALTED
-//                 bcrypt.hash(pass, salt, (error, hash) => {
-//                   if (error) {
-//                     console.log(error);
-//                     res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Registration error: Please try again" }] });
-//                   }
-//                   else { // THIRD ELSE: PASSWORD HASHED
-                      
-//                     const user = new Siawuser({
-//                       email,
-//                       password: hash,
-//                       user_first,
-//                       user_last,
-//                       ward,
-//                       database,
-//                       public_name,
-//                       admin: true,
-//                       paid: false,
-//                       authenticated: false
-//                     });
-//                     user.save()
-//                     .then((result) => {
-//                       console.log("result! : ", result);
-//                       req.login(user, (login_err) => {
-//                         if (login_err) {
-//                           console.log(error);
-//                           res.redirect("/login"); // add error message about registrtion successful but login failure. pleasa try to login below.
-
-//                         }
-//                         else { // FOURTH ELSE: USER CREATED, AND ABLE TO LOG IN
-                          
-//                           let precincts = [];
-                          
-//                           for (let i = 0; i < no_of_precincts; i++) {
-//                             let obj = {};
-                            
-//                             obj.number = i + 1;
-//                             obj.total_votes = 0;
-//                             obj.last_updated = "";
-//                             obj.updated_by = "";
-//                             obj.opponent_votes = {};
-                            
-//                             precincts.push(obj);
-//                           }
-                          
-//                           let campaign = {
-//                             database,
-//                             public_name,
-//                             ward,
-//                             no_of_precincts,
-//                             candidate_first,
-//                             candidate_last,
-//                             precincts
-//                           }
-
-                          
-//                           Campaign.create(campaign, (campaigns_error, doc) => {
-//                             if (campaigns_error) {
-//                               console.log(campaigns_error);
-//                               res.redirect("/register", { errors: [{ msg: "Error: Database failure. Contact support to help set up database." }] });
-//                             }
-//                             else { // FIFTH ELSE: CAMPAIGN INSERTED INTO CAMPAIGNS DATABASE
-//                               let token = randomstring.generate();
-
-//                               let verification = {
-//                                 email,
-//                                 token,
-//                                 expireAfterSeconds: 172800
-//                               };
-                              
-//                               db.collection("verification").insertOne(verification, async (verification_err, ver) => {
-
-//                                 if (verification_err) {
-//                                   console.log(err);
-//                                   res.render("/register", { errors: [{ msg: "Error: Account created, but verification email failed. Log in to request another verificaiton email to verify your account." }] });
-//                                 }
-//                                 else { // SIXTH ELSE: VERIFICATION INSERTED INTO VERIFICATION DATABASE
-//                                   // send verification email
-//                                   const html = '<p>Hi ' + email + ',</p><p>Thank you for signing up with Turnout the Vote!</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://election-day3.glitch.me/verify/' + token + '">https://election-day3.glitch.me/verify/' + token + '</a></p><p> Have a pleasant day!</p>';
-//                                   console.log(html);
-//                                   await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
-
-//                                   res.redirect("/payment"); // add note about verifying email address (this on-screen message goes to admin though, not pollwatcher)
-//                                 }
-//                               });
-//                             }
-//                           })
-                    //      }
-                    //   })
-                    // })
-            //         .catch((catch_err) => {
-            //           console.log(catch_err);
-            //           res.render("/register", { errors: [{ msg: "There was an error with your registration. That's all we know right now. Please contact support for help." }] });
-            //         });
-            //       };
-            //     })
-            //   }
-            // });
-          })
-        
-        
-        
-        
-      });
       
       app.get("/requestreset", (req, res) => {
         res.render(process.cwd() + "/views/pug/requestreset");
@@ -955,9 +840,7 @@ module.exports = (app, db) => {
             let user_first = user.user_first;
 
             const html = '<p>Hi ' + user_first + ',</p><p>A password reset was recently requested for this email address</p><p>To change your password, use the following link:</p><p><a href="https://election-day3.glitch.me/resetpassword/' + token + '">https://election-day3.glitch.me/resetpassword/' + token + '"</a>. This request will expire in one hour.</p><p>If you didn\'t make this request, you can ignore this message and your password will remain unchanged.</p><p>Have a pleasant day!</p>';
-            console.log("html");
             await sendEmail("scott@voterturnout.com", email, "Your password reset request", html);
-            console.log("html2");
 
             req.flash("success", "An email has been sent to the email address you provided. Click the link to reset your password. This request is only valid for one hour.");
             res.redirect("/login");
@@ -993,7 +876,7 @@ module.exports = (app, db) => {
             return val;
           }
         })
-        ], (req, res) => {
+        ], checkValidationResult, (req, res) => {
         
         let token = req.params.token;
         let pass = req.body.password;
@@ -1024,7 +907,7 @@ module.exports = (app, db) => {
                     req.login(user, (login_err) => {
                       if (login_err) {
                         console.log(login_err);
-                        req.flash("error", "Login successful, but unable to log in. Please try logging in below.");
+                        req.flash("error", "Registration successful, but unable to log in. Please try logging in below.");
                       }
                       
                       else { // FOURTH ELSE: USER SAVED AND LOGGING IN
@@ -1039,6 +922,70 @@ module.exports = (app, db) => {
             })
           }
         });        
+      });
+      
+      app.get("/pollwatcherconfirm", (req, res) => {
+        res.render(process.cwd() + "/views/pug/pollwatcherconfirm");
+      });
+      
+      app.post("/pollwatcherconfirm", (req, res) => {
+        let email = req.body.email.toLowerCase();
+        let verification_token = req.body.token;
+        let pass = req.body.password;
+        let confirmpassword = req.body.confirmpassword;
+
+        
+        Siawuser.findOne({ email, verification_token }, (err, user) => {
+          if (err) {
+            console.log(err);
+            req.flash("error", "Token is invalid");
+            res.render(process.cwd() + "/views/pug/pollwatcherconfirm", { errors: [{ msg: "Invalid entry." }] });
+          }
+          
+          else { // FIRST ELSE: NO DATABASE ERROR
+            bcrypt.genSalt(10, (err, salt) => {
+              if (err) {
+                console.log(err);
+                res.render(process.cwd() + "/views/pug/pollwatcherconfirm", { errors: [{ msg: "Registration error: Please try again" }] });
+              }
+
+              else { // SECOND ELSE: PASSWORD SALTED
+                bcrypt.hash(pass, salt, (error, hash) => {
+                  if (error) {
+                    console.log(error);
+                    res.render(process.cwd() + "/views/pug/pollwatcherconfirm", { errors: [{ msg: "Registration error: Please try again" }] });
+                  }
+                  else { // THIRD ELSE: PASSWORD HASHED
+                    
+                    if (user) {
+                      user.password = hash;
+                      user.authenticated = true;
+                      user.save();
+                      req.login(user, (login_err) => {
+                        if (login_err) {
+                          console.log(login_err);
+                          req.flash("error", "Authentication successful, but unable to log in. Please try logging in below.");
+                        }
+
+                        else { // FOURTH ELSE: USER SAVED AND LOGGING IN
+
+                          let admin = req.user.admin;
+
+                          req.flash("success", "You are registered and authenticated.");
+                          res.redirect("/admin", { admin });
+                        }
+
+                      });
+                    }
+                    else {
+                      res.render(process.cwd() + "/views/pug/pollwatcherconfirm", { msg: "No user found" });
+                    }
+                  }
+                })
+              }
+            })
+          }
+        })
       });
       
       

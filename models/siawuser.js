@@ -17,6 +17,7 @@ const siawuserSchema = mongoose.Schema({
   public_name: { type: String, default: "" },
   admin: { type: Boolean, required: true, default: false }, // needs to be changed for admins
   paid: { type: Boolean, required: true, default: false }, // only for admins
+  verification_token: { type: String, required: true }, // to verify email address
   authenticated: { type: Boolean, default: false },
   resetPassword: String,
   resetPasswordExpires: Date

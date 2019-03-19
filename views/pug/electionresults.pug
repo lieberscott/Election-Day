@@ -1,0 +1,73 @@
+extends layout.pug
+
+block extralink
+  link(rel="stylesheet" href="/style.css")
+  
+block extrascript
+  script(src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous")
+  script(src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous")
+  
+block main
+    
+    
+  - let x = obj.precincts[0].opponent_votes;
+  - let cands = Object.keys(x);
+  h1 Precinct Voters
+  p Number of your supporters who have voted and not voted as of #{date}
+  div.row.font-weight-bold
+    div.col-1 Precinct
+    each cand in cands
+      div.col-1.opponent= cand
+    div.col-1 Vote totals
+  hr
+  each item, i in obj.precincts
+    div.row.text-center
+      div(class="precinct"+item.number).col-1=item.number
+      each cand, int in cands
+        div(class="cand"+int).col-1=item.opponent_votes[cand]
+    div.row.text-center
+      div.col-1
+      each cand, int in cands
+        div.col-1=Math.round(item.opponent_votes[cand] / item.total_votes * 1000) / 10 + "%"
+      div.col-1=item.total_votes
+        
+    hr
+  script.
+    let local_data =!{JSON.stringify(obj)}
+    // { candiddate: total votes, candidate: total votes, etc. }
+    let candidate_totals = {};
+    console.log(local_data);
+    let precincts = local_data.precincts; // array of precincts
+    let precincts_len = precincts.length; // number of precincts
+    let candidates = Object.keys(precincts[0].opponent_votes); // ["Matt Martin", "Michael Negron", etc.]
+    console.log("candidates : ", candidates);
+    let candidates_len = candidates.length; // number of candidates
+    console.log(candidates_len);
+    let html1 = '<div class="row"><div class="col-1">Totals</div>';
+    let html2 = '<div class="row"><div class="col-1"></div>';
+    
+    for (let i = 0; i < candidates_len; i++) {
+      let candidate = candidates[i];
+      candidate_totals[candidate] = 0; // { "Matt Martin": 0, "Michael Negron": 0, etc. }
+    }
+    console.log(candidate_totals);
+    
+    let ward_votes = 0;
+    for (let i = 0; i < precincts_len; i++) {
+      ward_votes += precincts[i].total_votes;
+      for (let j = 0; j < candidates_len; j++) {
+        let cand = candidates[j];
+        candidate_totals[cand] += precincts[i].opponent_votes[cand];
+      }
+    }
+    
+    for (let i = 0; i < candidates_len; i++) {
+      let candidate = candidates[i];
+      console.log(candidate_totals[candidate]);
+      html1 += '<div class="col-1">' + candidate_totals[candidate] + '</div>';
+      html2 += '<div class="col-1">' + Math.round(candidate_totals[candidate] / (ward_votes * 1000) / 10) + '%</div>';
+    }
+    html1 += '<div class="col-1">' + ward_votes + '</div></div>'
+    html2 += '<div class="col-1">100%</div></div>';
+    html = html1 + html2;
+    $(".col-10").append(html);
