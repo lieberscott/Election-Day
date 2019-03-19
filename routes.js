@@ -349,7 +349,19 @@ module.exports = (app, db) => {
         
         
         // update database
-        db.collection("campaigns").updateOne({ database, "precincts.number": precinct },{
+        Campaign.findOne({ database })
+          .exec()
+          .then((doc) => {
+          doc.precincts[precinct - 1].opponent_votes = opponent_votes; // <- HACKY. USING [precinct - 1] TO IDENTIFY THE ARRAY INDEX, RATHER THAN CAPTURING THE OBJECT FOR WHICH PRECINCT = 1. PRECINCT 1 WILL BE AT INDEX 0, PRECINCT 2 AT INDEX 1, AND SO ON.
+          doc.precincts[precinct - 1].total_votes = total_votes;// <- HACKY
+          doc.save();
+          res.redirect("/report");
+        })
+        .catch((err) => {
+          console.log(err);
+        });;
+        /*  
+        , {
           $set: { "precincts.$.opponent_votes": opponent_votes },
           $set: { "precincts.$.total_votes": total_votes }
         }, (err, doc) => {
@@ -358,7 +370,7 @@ module.exports = (app, db) => {
             console.log("doc : ", doc);
             res.redirect("/report");
           }
-        })
+        }) */
       });
       
       app.get("/electionresults", adminMiddleware, (req, res) => {
