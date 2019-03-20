@@ -9,7 +9,7 @@ block extrascript
   script(src="/client.js" defer)
   
 block main
-  h1 Precinct #{arr[0].precinct}
+  h1 Precinct #{arr.precinct}
   h3 Not yet voted
   div.row.font-weight-bold
     div.col-4 Name
@@ -18,7 +18,7 @@ block main
   hr
   each item, i in arr
     div(id="section" + (i + 1))
-      if !item.voted
+      if item.voted == "0"
         div.font-weight-bold
           button.far.fa-times-circle(id=item._id data-pollwatcher=pollwatcher)
         div.row
@@ -36,7 +36,7 @@ block main
     div.col-3 Date/Time
   hr
   each item, i in arr
-    if item.voted
+    if item.voted == "1"
       div.row
         div.col-4=item.firstname + " " + item.lastname
         div.col-3=item.address

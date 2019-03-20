@@ -230,26 +230,25 @@ module.exports = (app, db) => {
       
       
       app.get("/voted", (req, res) => {
+        
+        let database = req.user.database;
+        
         let id = ObjectId(req.query.clickedId);
         let pollwatcher = req.query.pollwatcher;
         let tempdate= new Date().toString().split("GMT+0000 (UTC)")[0].split(" 2019");
         let d = tempdate[1].split(":");
         let time = Number(d[0]);
-        let t;
-        if (time >= 7) { t = time - 6; }
-        else if (time == 0) { t = 6 }
-        else if (time == 1) { t = 7 }
-        else if (time == 2) { t = 8 }
-        else if (time == 3) { t = 9 }
-        else if (time == 4) { t = 10 }
-        else if (time == 5) { t = 11 }
-        else if (time == 6) { t = 12 }
-        let date = tempdate[0] + " " + t + ":" + d[1] + ":" + d[2];
+        let t = (time % 12) - 5;
+        if (time == 0) { t = 5 }
+        else if (time == -1) { t = 4 }
+        else if (time == -2) { t = 3 }
+        else if (time == -3) { t = 2 }
+        else if (time == -4) { t = 1 }
+        else if (time == -5) { t = 12 }
+        let date = tempdate[0] + " " + t + ":" + d[1] + ":" + d[2];        
         
         
-        
-        
-        db.collection('siaw').findOneAndUpdate({ _id: id }, { $set: { voted : true, enteredBy: pollwatcher, date } }, (err, doc) => {
+        db.collection(database).findOneAndUpdate({ _id: id }, { $set: { voted : "1", enteredBy: pollwatcher, date } }, (err, doc) => {
           if (err) { console.log(err) }
           else {
             console.log("success : ", err);
@@ -332,14 +331,13 @@ module.exports = (app, db) => {
         let tempdate= new Date().toString().split("GMT+0000 (UTC)")[0].split(" 2019");
         let d = tempdate[1].split(":");
         let time = Number(d[0]);
-        let t = (time % 12) - 6;
-        if (time == 0) { t = 6 }
-        else if (time == -1) { t = 5 }
-        else if (time == -2) { t = 4 }
-        else if (time == -3) { t = 3 }
-        else if (time == -4) { t = 2 }
-        else if (time == -5) { t = 1 }
-        else if (time == -6) { t = 12 }
+        let t = (time % 12) - 5;
+        if (time == 0) { t = 5 }
+        else if (time == -1) { t = 4 }
+        else if (time == -2) { t = 3 }
+        else if (time == -3) { t = 2 }
+        else if (time == -4) { t = 1 }
+        else if (time == -5) { t = 12 }
         let date = tempdate[0] + " " + t + ":" + d[1] + ":" + d[2];
         let user_first = req.user.user_first;
         let user_last = req.user.user_last;
@@ -561,10 +559,13 @@ module.exports = (app, db) => {
       
       app.get("/precincts", /* adminMiddleware, */ (req, res) => {
         
-        let x = db.collection("siaw").aggregate([
+        let database = req.user.database;
+        let admin = req.user.admin;
+        
+        let x = db.collection(database).aggregate([
           { $match : { } },
           // sorts by precinct, and gets number who voted and who haven't voted
-          { $group : { _id: "$precinct", voted: { $sum: { $cond: ["$voted", 1, 0 ] } }, notvoted: { $sum: { $cond: ["$voted", 0, 1 ] } } } },
+          { $group : { _id: "$precinct", voted: { $sum: { $cond: [ { $eq: ["$voted", "1"] }, 1, 0 ] } }, notvoted: { $sum: { $cond: [{ $eq: ["$voted", "1"] }, 0, 1 ] } } } },
           { $sort: { _id: 1 } }
         ], (err, cursor) => {
           if (err) { console.log(err); }
@@ -573,8 +574,8 @@ module.exports = (app, db) => {
             cursor.toArray()
             .then((docs) => {
               arr = docs;
-              let count = 0;
-              res.render(process.cwd() + '/views/pug/precincts', { arr, count, admin: true  });
+              console.log(arr);
+              res.render(process.cwd() + '/views/pug/precincts', { arr, admin });
             });
           }
         });
