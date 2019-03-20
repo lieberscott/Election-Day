@@ -302,7 +302,6 @@ module.exports = (app, db) => {
           }
 
           else {
-            console.log(doc);
             res.render(process.cwd() + "/views/pug/report", { doc, precinct });
           }
 
@@ -329,31 +328,33 @@ module.exports = (app, db) => {
           opponent_votes[candidate] = num;
         }
         
-        console.log(opponent_votes);
-        console.log(total_votes);
-        
         
         let tempdate= new Date().toString().split("GMT+0000 (UTC)")[0].split(" 2019");
         let d = tempdate[1].split(":");
         let time = Number(d[0]);
-        let t;
-        if (time >= 7) { t = time - 6; }
-        else if (time == 0) { t = 6 }
-        else if (time == 1) { t = 7 }
-        else if (time == 2) { t = 8 }
-        else if (time == 3) { t = 9 }
-        else if (time == 4) { t = 10 }
-        else if (time == 5) { t = 11 }
-        else if (time == 6) { t = 12 }
+        let t = (time % 12) - 6;
+        if (time == 0) { t = 6 }
+        else if (time == -1) { t = 5 }
+        else if (time == -2) { t = 4 }
+        else if (time == -3) { t = 3 }
+        else if (time == -4) { t = 2 }
+        else if (time == -5) { t = 1 }
+        else if (time == -6) { t = 12 }
         let date = tempdate[0] + " " + t + ":" + d[1] + ":" + d[2];
+        let user_first = req.user.user_first;
+        let user_last = req.user.user_last;
         
+        let last_updated = date + " by " + user_first + " " + user_last;
+        
+        console.log(last_updated);
         
         // update database
         Campaign.findOne({ database })
-          .exec()
-          .then((doc) => {
+        .exec()
+        .then((doc) => {
           doc.precincts[precinct - 1].opponent_votes = opponent_votes; // <- HACKY. USING [precinct - 1] TO IDENTIFY THE ARRAY INDEX, RATHER THAN CAPTURING THE OBJECT FOR WHICH PRECINCT = 1. PRECINCT 1 WILL BE AT INDEX 0, PRECINCT 2 AT INDEX 1, AND SO ON.
-          doc.precincts[precinct - 1].total_votes = total_votes;// <- HACKY
+          doc.precincts[precinct - 1].total_votes = total_votes; // <- HACKY
+          doc.precincts[precinct - 1].last_updated = last_updated; // <- HACKY
           doc.save();
           res.redirect("/report");
         })

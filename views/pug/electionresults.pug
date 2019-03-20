@@ -1,7 +1,7 @@
 extends layout.pug
 
 block extralink
-  link(rel="stylesheet" href="/style.css")
+  link(rel="stylesheet" href="/electionresults.css")
   
 block extrascript
   script(src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous")
@@ -22,14 +22,18 @@ block main
   hr
   each item, i in obj.precincts
     div.row.text-center
-      div(class="precinct"+item.number).col-1=item.number
-      each cand, int in cands
-        div(class="cand"+int).col-1=item.opponent_votes[cand]
-    div.row.text-center
       div.col-1
       each cand, int in cands
-        div.col-1=Math.round(item.opponent_votes[cand] / item.total_votes * 1000) / 10 + "%"
+        div(class="cand"+int).col-1=item.opponent_votes[cand]
       div.col-1=item.total_votes
+    div.row.text-center
+      div(class="precinct"+item.number).col-1=item.number
+      each cand, int in cands
+        - let percent = (Math.round(item.opponent_votes[cand] / item.total_votes * 1000) / 10) || 0;
+        div.col-1=percent + "%"
+    div.row
+      div.col-1
+      div.col-11 Last updated: #{item.last_updated}
         
     hr
   script.
@@ -65,7 +69,8 @@ block main
       let candidate = candidates[i];
       console.log(candidate_totals[candidate]);
       html1 += '<div class="col-1">' + candidate_totals[candidate] + '</div>';
-      html2 += '<div class="col-1">' + Math.round(candidate_totals[candidate] / (ward_votes * 1000) / 10) + '%</div>';
+      let perc = Math.round(candidate_totals[candidate] / ward_votes * 1000) / 10 || 0;
+      html2 += '<div class="col-1">' + perc + '%</div>';
     }
     html1 += '<div class="col-1">' + ward_votes + '</div></div>'
     html2 += '<div class="col-1">100%</div></div>';
