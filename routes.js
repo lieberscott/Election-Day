@@ -71,10 +71,10 @@ module.exports = (app, db) => {
       app.get("/watch", (req, res) => {
         if (req.user) {
           let database = req.user.database;
-          let precinct = req.user.precinct;
-          let ward = req.user.ward;
+          let precinct = req.user.precinct.toString();
+          let ward = req.user.ward.toString();
 
-          db.collection(database).find( { ward, precinct, voted: 0 }, { sort: { lastname: 1 } }, (err, cursor) => {
+          db.collection(database).find( { ward, precinct, voted: "0" }, { sort: { lastname: 1 } }, (err, cursor) => {
             if (err) {
               console.log(err);
               req.flash("error", "Database error: Please try again");
@@ -752,16 +752,22 @@ module.exports = (app, db) => {
       app.get("/view/:precinct", adminMiddleware, (req, res) => {
         
         // convert param from string into a number
-        let precinct = Number(req.params.precinct);
+        let precinct = req.params.precinct;
+        let database = req.user.database;
+        let admin = req.user.admin;
         
-        db.collection('siaw').find({ precinct }, { sort: { voted: 1, date: -1 } }, (err, cursor) => {
-          if (err) { console.log(err); }
+        db.collection(database).find({ precinct }, { sort: { voted: 1, date: -1 } }, (err, cursor) => {
+          if (err) {
+            req.flash("error", "Unable to fetch data. Please try again.");
+            res.redirect("/admin");
+            console.log(err);
+          }
           else {
             let arr = [];
             cursor.toArray()
               .then((docs) => {
                 arr = docs;
-              res.render(process.cwd() + '/views/pug/view', { arr, admin: true });
+              res.render(process.cwd() + '/views/pug/view', { arr, admin });
             });
           }
         })
