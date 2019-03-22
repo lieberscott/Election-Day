@@ -14,10 +14,9 @@ html(lang="en")
   body
     div.container.container-fluid
       div.login-page
-        != messages('messages', local)
         if errors
           for error, i in errors
-            div(class="alert alert-danger") #{error.msg}
+            div(class="alert alert-danger") #{ error }
         h3 Login
         div.form
           form.login-form(method="POST" action="/login")

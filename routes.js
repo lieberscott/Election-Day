@@ -63,12 +63,11 @@ module.exports = (app, db) => {
       let db = client.db('freecodecamp2018');
 
       app.get('/', /* mainpageMiddleware, */ (req, res) => {
-        console.log("hello2");
         res.redirect("/login");
         
       });
       
-      app.get("/watch", (req, res) => {
+      app.get("/watch", (req, res) => { // pollwatcher watching their location
         if (req.user) {
           let database = req.user.database;
           let precinct = req.user.precinct.toString();
@@ -109,11 +108,14 @@ module.exports = (app, db) => {
         upload(req, res, (err) => {
           if (err) {
             console.log(err);
-            res.render(process.cwd() + "/views/pug/upload.pug", { msg: err });
+            req.flash("error", err);
+            res.render(process.cwd() + "/views/pug/upload.pug", { errors: req.flash("error") });
           }
           else {
             if (req.file == undefined) {
-              res.render(process.cwd() + "/views/pug/upload.pug", { msg: "Error: No file selected" });
+              req.flash("error", "No file selected.");
+              res.render(process.cwd() + "/views/pug/upload.pug", { errors: req.flash("error") });
+              // res.render(process.cwd() + "/views/pug/upload.pug", { msg: "Error: No file selected" });
             }
             else {
               console.log("file");
@@ -258,7 +260,6 @@ module.exports = (app, db) => {
 
 
       app.get('/login', /* loginpageMiddleware, */ (req, res, next) => {
-        console.log("login");
         res.render(process.cwd() + "/views/pug/login.pug");
       });
 
@@ -552,8 +553,8 @@ module.exports = (app, db) => {
       });
       
       app.get("/admin", /* adminMiddleware, */ (req, res) => {
-        let admin = req.user.admin;
-        res.render(process.cwd() + '/views/pug/admin', { admin });
+        // let admin = req.user.admin;
+        res.render(process.cwd() + '/views/pug/admin', { admin: true });
       });
       
       

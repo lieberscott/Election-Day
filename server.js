@@ -2,7 +2,6 @@
 const express = require('express');
 const app = express();
 const bodyparser = require("body-parser");
-const cookieparser = require("cookie-parser");
 const flash = require('connect-flash');
 const mongoose = require('mongoose');
 const passport = require("passport");
@@ -27,7 +26,8 @@ app.use(session({
 // express-messages middleware
 app.use(flash());
 app.use((req, res, next) => {
-  res.locals.messages = require('express-messages')(req, res);
+  res.locals.errors = req.flash("error");
+  res.locals.successes = req.flash("success");
   next();
 });
 

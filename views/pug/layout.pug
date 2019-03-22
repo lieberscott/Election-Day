@@ -28,8 +28,6 @@ html
               a.nav-link(href="/precincts") Precinct List
                 span.sr-only (current)
             li.nav-item.hide
-              a.nav-link(href="/#") Voter Totals
-            li.nav-item.hide
               a.nav-link(href="/electionresults") Election Results
             li.nav-item.hide
               a.nav-link(href="/precincts") View Current List
@@ -73,10 +71,6 @@ html
                   span   Dashboard
                     span.sr-only (current)
               li.nav-item
-                a.nav-link(href="#")
-                  i.fas.fa-vote-yea
-                  span     Voter Totals
-              li.nav-item
                 a.nav-link(href="/electionresults")
                   i.far.fa-chart-bar
                   span   Election Results
@@ -110,8 +104,11 @@ html
                   span   Logout
 
       div.col-10.ml-sm-auto.px-4
-        != messages('message', local)
+        // != messages('message', locals)
+        if successes
+          for success in successes
+            div.alert.alert-danger #{ success }
         if errors
           for error, i in errors
-            div.alert.alert-danger #{ error.msg }
+            div.alert.alert-danger #{ error }
         block main

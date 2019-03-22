@@ -10,10 +10,6 @@ block extrascript
   script(src="/upload.js")
 
 block main
-  != messages('messages', local)
-  if errors
-    for error, i in errors
-      div.alert.alert-danger #{error.msg}
   h5 Upload a new file
   ul
     li Document must be in .csv format
