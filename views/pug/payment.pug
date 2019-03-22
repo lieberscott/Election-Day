@@ -127,9 +127,20 @@ html
 
       div.popup
         div.popup-inner
-          div.form-group
-            form(action="/stripe" method="POST")
-              script(src="https://checkout.stripe.com/checkout.js" class="stripe-button" data-key="pk_test_TYooMQauvdEDq54NiTphI7jx" data-amount="999" data-name="Stripe.com" data-description="Example charge" data-image="https://stripe.com/img/documentation/checkout/marketplace.png" data-locale="auto" data-zip-code="true")
-          button.btn.btn-outline-secondary.align-right
+          if successes.length > 0
+            for success in successes
+              div.alert.alert-success #{ success }
+          else if authorized && !paid
+            div.alert.alert-success Email has been verified. Pay below to access the full site.
+          else if !authorized && paid
+            div.alert.alert-success Payment has been received. Verify your account to access the full site.
+          else if !authorized && !paid
+            div.alert.alert-danger Please verify your account and pay below to access the full site.
+          form(action="/stripe" method="POST")
+            script(src="https://checkout.stripe.com/checkout.js" class="stripe-button" data-key="pk_test_TYooMQauvdEDq54NiTphI7jx" data-amount="999" data-name="Stripe.com" data-description="Example charge" data-image="https://stripe.com/img/documentation/checkout/marketplace.png" data-locale="auto" data-zip-code="true")
+          form(action="/resendverification" method="POST")
+            button.btn.btn-outline-secondary.align-right(type="submit") Resend Verification
+          button.btn.btn-primary.align-right
             a(href="/logout") Logout
-          button.btn.btn-primary.align-right Add recipe
+          form(onsubmit="return confirm('Are you sure you want to delete your account?')" action="/deleteaccount" method="POST")
+            button.btn.btn-danger.align-right(type="submit") Delete account

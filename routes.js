@@ -68,40 +68,35 @@ module.exports = (app, db) => {
       });
       
       app.get("/watch", (req, res) => { // pollwatcher watching their location
-        if (req.user) {
-          let database = req.user.database;
-          let precinct = req.user.precinct.toString();
-          let ward = req.user.ward.toString();
+        let database = req.user.database;
+        let precinct = req.user.precinct.toString();
+        let ward = req.user.ward.toString();
 
-          db.collection(database).find( { ward, precinct, voted: "0" }, { sort: { lastname: 1 } }, (err, cursor) => {
-            if (err) {
-              console.log(err);
-              req.flash("error", "Database error: Please try again");
+        db.collection(database).find( { ward, precinct, voted: "0" }, { sort: { lastname: 1 } }, (err, cursor) => {
+          if (err) {
+            console.log(err);
+            req.flash("error", "Error retrieving data: Please try again");
+            res.redirect("/choice");
+          }
+          else {
+            let arr = [];
+            cursor.toArray()
+            .then((docs) => {
+              arr = docs;
+              res.render(process.cwd() + '/views/pug/watch', { arr });
+            })
+            .catch((error) => {
+              console.log(error);
+              req.flash("error", "Error retrieving records: Please try again");
               res.redirect("/choice");
-            }
-            else {
-              let arr = [];
-              cursor.toArray()
-              .then((docs) => {
-                arr = docs;
-                res.render(process.cwd() + '/views/pug/watch', { arr });
-              })
-              .catch((error) => {
-                console.log(error);
-                req.flash("error", "Error retrieving records: Please try again");
-                res.redirect("/choice");
-              });
-            }
-          });
-        }
-        else {
-          req.flash("error", "You must be logged in to view that content.");
-          res.render(process.cwd() + "/views/pug/login.pug");
-        }
+            });
+          }
+        });
       });
       
       app.get("/upload", (req, res) => {
-        res.render(process.cwd() + "/views/pug/upload.pug", { admin: true });
+        let admin = req.user.admin;
+        res.render(process.cwd() + "/views/pug/upload.pug", { admin });
       });
       
       app.post("/addfile", (req, res) => {
@@ -158,8 +153,8 @@ module.exports = (app, db) => {
                     }
                     else {
                       console.log("success!");
-                      req.flash("success", "File uploaded");
-                      res.render(process.cwd() + "/views/pug/upload.pug");
+                      req.flash("success", "Success! File uploaded");
+                      res.render(process.cwd() + "/views/pug/upload.pug", { successes: req.flash("success") });
                     }
                   });
                 }
@@ -208,21 +203,20 @@ module.exports = (app, db) => {
           });
           
           let id = req.user._id;
-          console.log(id);
-          console.log(req.user.email);
-          
-          console.log(charge);
-                    
+                              
           if (charge.paid) {
             db.collection("siawusers").updateOne({ _id: id }, { $set: { paid: true } }, (err, doc) => {
-              if (err) { console.log(err) }
+              if (err) {
+                console.log(err)
+                req.flash("error", err);
+                res.redirect("/payment");
+              }
               else {
                 console.log(doc);
+                req.flash("success", "Thank you for your payment. You are now free to use the Election Day platform.");
+                res.redirect("/admin");
               }
             });
-            
-            
-            res.redirect("/admin");
           }
           
         })();
@@ -394,8 +388,6 @@ module.exports = (app, db) => {
       });
       
       app.get("/register", (req, res) => {
-        
-        
         res.render(process.cwd() + "/views/pug/register.pug");
       });
       
@@ -438,23 +430,28 @@ module.exports = (app, db) => {
         .exec()
         .then((user) => {
           if (user) {
-            res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Email already exists" }] });
+            req.flash("error", "Email already exists.");
+            res.render(process.cwd() + "/views/pug/register", { errors: req.flash("error") });
           }
           
           else { // FIRST ELSE: IT IS A NEW USER
             bcrypt.genSalt(10, (err, salt) => {
               if (err) {
                 console.log(err);
-                res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Registration error: Please try again" }] });
+                req.flash("error", "Registration error. Please try again.");
+                res.render(process.cwd() + "/views/pug/register", { errors: req.flash("error") });
               }
 
               else { // SECOND ELSE: PASSWORD SALTED
                 bcrypt.hash(pass, salt, (error, hash) => {
                   if (error) {
                     console.log(error);
-                    res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Registration error: Please try again" }] });
+                    req.flash("error", "Registration error. Please try again.");
+                    res.render(process.cwd() + "/views/pug/register", { errors: req.flash("error") });
                   }
                   else { // THIRD ELSE: PASSWORD HASHED
+                    
+                    let verification_token = randomstring.generate();
                       
                     const user = new Siawuser({
                       email,
@@ -466,16 +463,16 @@ module.exports = (app, db) => {
                       public_name,
                       admin: true,
                       paid: false,
-                      authenticated: false
+                      authenticated: false,
+                      verification_token
                     });
                     user.save()
                     .then((result) => {
-                      console.log("result! : ", result);
                       req.login(user, (login_err) => {
                         if (login_err) {
                           console.log(error);
-                          res.redirect("/login"); // add error message about registrtion successful but login failure. pleasa try to login below.
-
+                          req.flash("error", "Registration successful, but login error. Please log in below.");
+                          res.redirect("/login");
                         }
                         else { // FOURTH ELSE: USER CREATED, AND ABLE TO LOG IN
                           
@@ -504,34 +501,24 @@ module.exports = (app, db) => {
                           }
 
                           
-                          Campaign.create(campaign, (campaigns_error, doc) => {
+                          Campaign.create(campaign, async (campaigns_error, doc) => {
                             if (campaigns_error) {
                               console.log(campaigns_error);
-                              res.redirect("/register", { errors: [{ msg: "Error: Database failure. Contact support to help set up database." }] });
+                              req.flash("error", "Error: Unable to create campaign. Please contact Election Day support.");
+                              res.redirect("/register");
                             }
                             else { // FIFTH ELSE: CAMPAIGN INSERTED INTO CAMPAIGNS DATABASE
-                              let token = randomstring.generate();
-
-                              let verification = {
-                                email,
-                                token,
-                                expireAfterSeconds: 172800
-                              };
-                              
-                              db.collection("verification").insertOne(verification, async (verification_err, ver) => {
-
-                                if (verification_err) {
-                                  console.log(err);
-                                  res.render("/register", { errors: [{ msg: "Error: Account created, but verification email failed. Log in to request another verificaiton email to verify your account." }] });
-                                }
-                                else { // SIXTH ELSE: VERIFICATION INSERTED INTO VERIFICATION DATABASE
-                                  // send verification email
-                                  const html = '<p>Hi ' + user_first + ',</p><p>Thank you for signing up with Turnout the Vote!</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://election-day3.glitch.me/verify/' + token + '">https://election-day3.glitch.me/verify/' + token + '</a></p><p> Have a pleasant day!</p>';
-                                  await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
-
-                                  res.redirect("/payment"); // add note about verifying email address (this on-screen message goes to admin though, not pollwatcher)
-                                }
-                              });
+                              // send verification email
+                              const html = '<p>Hi ' + user_first + ',</p><p>Thank you for signing up with Turnout the Vote!</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://election-day3.glitch.me/verify/' + verification_token + '/' + email + '">https://election-day3.glitch.me/verify/' + verification_token + '/' + email + '</a></p><p> Have a pleasant day!</p>';
+                              try {
+                                await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
+                              }
+                              catch (email_err) {
+                                req.flash("error", "Could not send verification email. Please click 'Send verification' to try again.");
+                                res.redirect("/payment");
+                              }
+                              req.flash("success", "Registration complete! Please verfiy your account from your email address, and enter payment information below to access the full site.");
+                              res.redirect("/payment"); // add note about verifying email address (this on-screen message goes to admin though, not pollwatcher)
                             }
                           })
                         }
@@ -549,12 +536,15 @@ module.exports = (app, db) => {
         });
       });      
       app.get("/payment", /* paymentMiddleware, */ (req, res) => {
-        res.render(process.cwd() + '/views/pug/payment');
+        let admin = req.user.admin;
+        let paid = req.user.paid;
+        let authorized = req.user.authorized;
+        res.render(process.cwd() + '/views/pug/payment', { admin, paid, authorized });
       });
       
-      app.get("/admin", /* adminMiddleware, */ (req, res) => {
-        // let admin = req.user.admin;
-        res.render(process.cwd() + '/views/pug/admin', { admin: true });
+      app.get("/admin", adminMiddleware, (req, res) => {
+        let admin = req.user.admin;
+        res.render(process.cwd() + '/views/pug/admin', { admin });
       });
       
       
@@ -705,45 +695,36 @@ module.exports = (app, db) => {
       });
       
       
-      app.get("/verify/:token", (req, res) => {
+      app.get("/verify/:token/:email", (req, res) => {
         
         let clicked_token = req.params.token; // user "entered" token
+        let email = req.params.email;
         
-        db.collection("verification").findOne({ token: clicked_token }, (err, user) => {
+        Siawuser.findOne({ email }, (err, user) => {
           if (err) {
-            res.render(process.cwd() + "/views/pug/verified", { msg: "Verification failed: Unknown error" });
-            console.log(err);
-          } // send an error message to page
-          else { // user was found
+            req.flash("error", "Database error. Please try again.");
+            res.render(process.cwd() + "/views/pug/verified", { errors: req.flash("error") });
+          }
+          else { 
             
             if (user) {
-
-              let email = user.email;
               let real_token = user.token;
 
-              Siawuser.findOneAndUpdate({ email }, { authenticated: true }, { new: true }, (error, doc) => {
-                if (err) {
-                  console.log(err);
-                  res.render(process.cwd() + "/views/pug/verified", { msg: "Verification failed: Unknown error" });
+                if (real_token == clicked_token) { // token matches
+                  user.authenticated = true;
+                  user.save();
+                  req.flash("success", "Success! You are now verified.");
+                  res.render(process.cwd() + "/views/pug/verified", { successes: req.flash("success") });
                 }
-                else {
-
-                  let admin = doc.admin;
-                  console.log(admin);
-
-                  if (real_token == clicked_token) { // token matches
-                    res.render(process.cwd() + "/views/pug/verified", { msg: "You are now verified" });
-                  }
-                  else { // token doesn't match
-                    res.render(process.cwd() + "/views/pug/verified", { msg: "Verification failed: Token incorrect" });
-                  }
+                else { // token doesn't match
+                  req.flash("error", "Verification failed. No user found or token invalid.");
+                  res.render(process.cwd() + "/views/pug/verified", { errors: req.flash("error") });
                 }
-              });
-
-            }
+              }
             
             else { // no user found
-              res.render(process.cwd() + "/views/pug/verified", { msg: "No user found" });
+              req.flash("error", "Verification failed. No user found or token invalid.");
+              res.render(process.cwd() + "/views/pug/verified", { errors: req.flash("error") });
             }
           }
         });
@@ -1070,6 +1051,59 @@ module.exports = (app, db) => {
         })
       });
       
+      app.post("/resendverification", (req, res) => { // resend verification button at /payment page
+        let email = req.user.email;
+        let user_first = req.user.user_first;
+        let verification_token = randomstring.generate();
+        
+        Siawuser.findOne({ email })
+        .exec()
+        .then(async (user) => {
+          user.verification_token = verification_token;
+          
+          const html = '<p>Hi ' + user_first + ',</p><p>A request was made to resend a verification token for your account.</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://election-day3.glitch.me/verify/' + verification_token + '/' + email + '">https://election-day3.glitch.me/verify/' + verification_token + '/' + email + '</a></p><p> Have a pleasant day!</p>';
+          
+          try {
+            await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
+            req.flash("success", "Email sent!");
+            res.redirect("/admin");
+          }
+          catch (email_err) {
+            req.flash("error", "Could not send verification email. Please click 'Send verification' to try again.");
+            res.redirect("/payment");
+          }
+          
+            
+        })
+        .catch((err) => {
+          console.log(err);
+          req.flash("error", "An error ocurred. Please try again.");
+          res.redirect("/payment");
+        });
+          
+          
+      });
+      
+      app.post("/deleteaccount", (req, res) => {
+        console.log("deleteaccount");
+        let email = req.user.email;
+        
+        Siawuser.findOneAndRemove({ email }, (err, doc) => {
+          if (err) {
+            req.flash("error", "Error: Please try again.");
+            res.redirect("/logout");
+          }
+          
+          else {
+            req.flash("success", "Your account has been deleted");
+            res.redirect("/logout");
+          }
+          
+        })
+        
+        
+      });
+      
       
       // app.get("/upload", (req, res) => {
       //   db.collection('siaw').insertMany([], (err, doc) => {
@@ -1112,7 +1146,7 @@ const mainpageMiddleware = (req, res, next) => {
 const adminMiddleware = (req, res, next) => {
   
   if (req.user) {
-    if (req.user.paid) {
+    if (req.user.paid && req.user.verified) {
       next();
     }
     else {
