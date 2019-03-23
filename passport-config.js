@@ -18,23 +18,17 @@ module.exports = (passport) => {
     Siawuser.findOne(query, (err, user) => {
       if (err) { console.log(err); }
       if (!user) {
-        console.log("no user found");
-        return done(null, false, { message: "No user found" });
+        return done(null, false, { message: "No user found or password incorrect" });
       }
       
-      console.log("user found");
       bcrypt.compare(pass, user.password, (error, isMatch) => {
-        console.log(pass);
-        console.log(user.password);
         if (error) { console.log(error); }
         else {
           if (isMatch) {
-            console.log(user);
             return done(null, user);
           }
           else {
-            console.log("wrong password");
-            return done(null, false, { message: "Wrong password" });
+            return done(null, false, { message: "No user found or password incorrect" });
           }
         }
       });

@@ -9,7 +9,6 @@ block extrascript
   
 block main
   div.login-page
-    != messages('messages', local)
     if errors
       for error, i in errors
         div.alert.alert-danger #{error.msg}
@@ -17,18 +16,12 @@ block main
       for success, i in successes
         div.alert.alert-success #{success.msg}
   h1 Campaign configuration
-  h5 Opponents
-  p Add the list of your opponents here. This will allow pollwatchers to add the votes at their location for each candidate after polls close., e.g.:
-  h6 Precinct 1
-  p George Washington: 35
-  p Thomas Jefferson 31
-  p John Adams 22
-  p You can see the results 
-    a(href="/votertotals") here
-  form(action="/addopponents" method="POST")
-    div.form-group
-      small#opponenthelp.form-text.text-muted Enter ALL of your opponent names, first and last. Separate opponents with a comma (Dwight D. Eisenhower, John F. Kennedy, Woodrow Wilson)
-      small#opponenthelp2.form-text.text-muted This will override your current list of opponents.
+  h5 Candidates
+  p Add the list of candidates (including your own candidate) here. This will allow pollwatchers to add the votes at their location for each candidate after polls close, and for you to 
+    a(href="/electionresults") see the results.
+  p Enter all candidate names. Separate names with a comma, e.g.:
+  p George Washington, Thomas Jefferson, John Adams
+  form(action="/addopponents" method="POST" onsubmit="return confirm('Are you sure you want to update your campaign? This will override all of your current candidate names and vote totals within this application (only relevant once voting has already started).')")
     div.form-row
       div.form-group.col-10
         input#opponents.form-control(name="opponents" type="text" placeholder="Enter opponent names")
@@ -48,3 +41,6 @@ block main
   p To change your password, click the button below. You will receive an email with a link to change your password.
   a(href="/requestreset" target="_blank")
     button.btn.btn-primary Request password reset
+  h5 Danger Zone: Delete account
+  form(action="/deleteaccount" method="POST" onsubmit="return confirm('Are you sure you want to delete your account? This can not be undone. All campaign information will be lost.')")
+    button.btn.btn-danger Delete account

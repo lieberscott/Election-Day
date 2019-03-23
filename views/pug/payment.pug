@@ -135,7 +135,7 @@ html
           else if !authorized && paid
             div.alert.alert-success Payment has been received. Verify your account to access the full site.
           else if !authorized && !paid
-            div.alert.alert-danger Please verify your account and pay below to access the full site.
+            div.alert.alert-danger Please verify your account and pay below to access the full site. Click the link in the verification email sent to you, or request another verification email by clicking the button below.
           form(action="/stripe" method="POST")
             script(src="https://checkout.stripe.com/checkout.js" class="stripe-button" data-key="pk_test_TYooMQauvdEDq54NiTphI7jx" data-amount="999" data-name="Stripe.com" data-description="Example charge" data-image="https://stripe.com/img/documentation/checkout/marketplace.png" data-locale="auto" data-zip-code="true")
           form(action="/resendverification" method="POST")
@@ -144,3 +144,6 @@ html
             a(href="/logout") Logout
           form(onsubmit="return confirm('Are you sure you want to delete your account?')" action="/deleteaccount" method="POST")
             button.btn.btn-danger.align-right(type="submit") Delete account
+          p If you still see this prompt after 
+          a(href="/admin")
+            button.btn.btn-success Click Here
