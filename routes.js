@@ -908,6 +908,7 @@ module.exports = (app, db) => {
       });
       
       app.post("/requestreset", (req, res) => {
+        console.log("requestreset");
         let token = randomstring.generate();
 
         let email = req.body.email.toLowerCase();
@@ -925,15 +926,14 @@ module.exports = (app, db) => {
           else { // User found
             console.log("hello inside user");
             user.resetPassword = token;
-            user.resetPasswordExpires = date;
             user.save();
 
             let user_first = user.user_first;
 
-            const html = '<p>Hi ' + user_first + ',</p><p>A password reset was recently requested for this email address</p><p>To change your password, use the following link:</p><p><a href="https://election-day3.glitch.me/resetpassword/' + token + '">https://election-day3.glitch.me/resetpassword/' + token + '"</a>. This request will expire in one hour.</p><p>If you didn\'t make this request, you can ignore this message and your password will remain unchanged.</p><p>Have a pleasant day!</p>';
+            const html = '<p>Hi ' + user_first + ',</p><p>A password reset was recently requested for this email address</p><p>To change your password, use the following link:</p><p><a href="https://election-day3.glitch.me/resetpassword/' + token + '">https://election-day3.glitch.me/resetpassword/' + token + '"</a>.</p><p>If you didn\'t make this request, you can ignore this message and your password will remain unchanged.</p><p>Have a pleasant day!</p>';
             await sendEmail("scott@voterturnout.com", email, "Your password reset request", html);
 
-            req.flash("success", "An email has been sent to the email address you provided. Click the link to reset your password. This request is only valid for one hour.");
+            req.flash("success", "An email has been sent to the email address you provided. Click the link to reset your password.");
             res.redirect("/login");
           }
         });
@@ -941,7 +941,20 @@ module.exports = (app, db) => {
       });
       
       app.get("/resetpassword/:token", (req, res) => {
-        res.render(process.cwd() + "/views/pug/resetpassword");       
+        
+        let token = req.params.token;
+        
+        Siawuser.findOne({ resetPassword: token, resetPasswordExpires: { $gte: Date.now() } }, (err, user) => {
+          if (err) {
+            console.log(err);
+            req.flash("error", "Password reset is invalid or has expired.");
+            res.render(process.cwd() + "/views/pug/resetpassword", { errors: [{ msg: "Password reset is invalid or has expired." }] });
+          }
+          
+          else {
+            res.render(process.cwd() + "/views/pug/resetpassword", { token });
+          }
+        });        
       });
       
       app.post("/resetpassword/:token", [
@@ -956,14 +969,16 @@ module.exports = (app, db) => {
         })
         ], checkValidationResult, (req, res) => {
         
+        console.log("resetpassword");
         let token = req.params.token;
         let pass = req.body.password;
+        console.log("token : ", token);
         
-        Siawuser.findOne({ resetPassword: token, resetPasswordExpires: { $gte: Date.now() } }, (err, user) => {
+        Siawuser.findOne({ resetPassword: token }, (err, user) => {
           if (err) {
             console.log(err);
             req.flash("error", "Password reset is invalid or has expired.");
-            res.render(process.cwd() + "/views/pug/resetpassword", { errors: [{ msg: "Password reset is invalid or has expired." }] });
+            res.redirect("/login");
           }
           
           else { // FIRST ELSE: USER FOUND
@@ -1178,11 +1193,16 @@ const adminMiddleware = (req, res, next) => {
 }
 
 const checkValidationResult = (req, res, next) => {
-    const result = validationResult(req);
-    if (result.isEmpty()) {
-        return next();
-    }
-    res.render(process.cwd() + '/views/pug/register', { errors: result.array() });
+  const result = validationResult(req);
+  const referer = req.headers.referer;
+  let url = referer.split("https://election-day3.glitch.me")[1];
+  
+  console.log(url);
+  console.log(req.headers.referer);
+  if (result.isEmpty()) {
+      return next();
+  }
+  res.render(process.cwd() + "/views/pug/failure", { errors: result.array(), url });
 }
 
 const sendEmail = (from, to, subject, html) => {

@@ -17,6 +17,9 @@ html(lang="en")
         if errors
           for error, i in errors
             div(class="alert alert-danger") #{ error }
+        if successes
+          for success, i in successes
+            div(class="alert alert-success") #{ success }
         h3 Login
         div.form
           form.login-form(method="POST" action="/login")

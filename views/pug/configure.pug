@@ -24,8 +24,8 @@ block main
   form(action="/addopponents" method="POST" onsubmit="return confirm('Are you sure you want to update your campaign? This will override all of your current candidate names and vote totals within this application (only relevant once voting has already started).')")
     div.form-row
       div.form-group.col-10
-        input#opponents.form-control(name="opponents" type="text" placeholder="Enter opponent names")
-    button.btn.btn-success(type="submit") Enter opponents
+        input#opponents.form-control(name="opponents" type="text" placeholder="Enter candidate names")
+    button.btn.btn-success(type="submit") Enter candidates
   
   h5 Number of precincts
   p When you registered, you entered the total number of precincts in your ward. If you made a mistake, update the number below.
