@@ -13,7 +13,6 @@ const nodemailer = require("nodemailer");
 const ObjectId = require('mongodb').ObjectID; // using?
 const json2csvtransform = require('json2csv').Transform;
 const randomstring = require("randomstring");
-const request = require("request");
 const Siawuser = require("./models/siawuser.js"); // admins and pollwatchers
 const Campaign = require("./models/campaign.js");
 const transport = nodemailer.createTransport({
@@ -1127,34 +1126,43 @@ module.exports = (app, db) => {
         res.render(process.cwd() + "/views/pug/contact");
       });
       
-      app.get("/export", (req, res) => {
-        // let database = req.user.database;
+      app.post("/export", (req, res) => {
+        let database = req.user.database;
         
         // set up variables for piping new data using jsonstream module and json2csv module
         let date = Date.now();
-        const file = "public/uploads/myfile" + date + ".csv";
-        const output = fs.createWriteStream(file, { encoding: 'utf8' });
+        const directory = "public/uploads";
+        const file = "voterdata" + date + ".csv";
+        const output = fs.createWriteStream(directory + "/" + file, { encoding: 'utf8' });
         const json2csv = new json2csvtransform();
         
         
-        db.collection("Negron-1552770576429").find({}, (err, cursor) => {
+        db.collection(database).find({}, (err, cursor) => {
           
           if (err) {
             console.log(err);
             req.flash("error", err);
-            res.redirect("/admin");
+            res.redirect("/configure");
           }
           
           else {
             try {
-              // pipe from the cursor (from Mongo), then stringify using jsonstream, then pipe to json2csv, then pipe to the output file
+              // stream from the cursor (from Mongo), then stringify using jsonstream, then pipe to json2csv, then pipe to the output file
               let stream = cursor.stream().pipe(jsonstream.stringify()).pipe(json2csv).pipe(output);
-              stream.on("finish", () => { res.download(file) });
-            } catch (err) {
-              console.error(err);
-              console.log("done?");
-
-              res.json({ done: "done?" });
+              // download locally when piping is finished
+              console.log("prestream");
+              stream.on("finish", () => {
+                res.download(directory + "/" + file, (download_err) => {
+                  // delete the file
+                  fs.unlink(path.join(directory, file));
+                });
+              });
+              console.log("poststream");
+              
+            } catch (stream_err) {
+              console.error(stream_err);
+              req.flash("error", stream_err);
+              res.redirect("/configure");
             }
           }
         

@@ -36,6 +36,11 @@ block main
         div.form-group.col-2
           input#precincts.form-control(name="precincts" type="text" placeholder="Number")
       button.btn.btn-success(type="submit") Change number of precincts
+      
+  h5 Download voter data
+  p Download your list so you can then upload the updated voter data to Votebuilder.
+  form(action="/export" method="POST")
+    button.btn.btn-success(type="submit") Download
 
   h1 User Configureation
   p To change your password, click the button below. You will receive an email with a link to change your password.

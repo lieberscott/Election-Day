@@ -29,7 +29,6 @@
     "passport-local": "^1.0.0",
     "pug": "^2.0.3",
     "randomstring": "^1.1.5",
-    "request": "^2.88.0",
     "stripe": "^6.25.1"
   },
   "engines": {
