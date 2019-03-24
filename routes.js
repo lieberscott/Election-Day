@@ -62,6 +62,15 @@ module.exports = (app, db) => {
       /
       /
       / Pages in which you don't need to be signed in
+      /
+      /login
+      /logout
+      /register
+      /verify/:token/:email
+      /requestreset
+      /resetpassword/:token
+      /delete (you do need to be signed in, but it's not specific to admin or pollwatcher). doing check within route, not with middleware
+      /contact
       / vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
       /
       /
@@ -285,6 +294,218 @@ module.exports = (app, db) => {
       });
       
       
+      app.get("/requestreset", (req, res) => {
+        res.render(process.cwd() + "/views/pug/requestreset");
+      });
+      
+      app.post("/requestreset", (req, res) => {
+        console.log("requestreset");
+        let token = randomstring.generate();
+
+        let email = req.body.email.toLowerCase();
+
+        let date = Date.now() + 3600000;
+        
+        console.log("token : ", token);
+
+        Siawuser.findOne({ email }, async (err, user) => {
+          if (err) {
+            console.log(err);
+            req.flash("error", err);
+            return res.render(process.cwd() + "/views/pug/requestreset", { errors: req.flash("error") });
+          }
+
+          else { // User found
+            console.log("hello inside user");
+            user.resetPassword = token;
+            user.save();
+
+            let user_first = user.user_first;
+
+            const html = '<p>Hi ' + user_first + ',</p><p>A password reset was recently requested for this email address</p><p>To change your password, use the following link:</p><p><a href="https://election-day3.glitch.me/resetpassword/' + token + '">https://election-day3.glitch.me/resetpassword/' + token + '"</a>.</p><p>If you didn\'t make this request, you can ignore this message and your password will remain unchanged.</p><p>Have a pleasant day!</p>';
+            await sendEmail("scott@voterturnout.com", email, "Your password reset request", html);
+
+            req.flash("success", "An email has been sent to the email address you provided. Click the link to reset your password.");
+            res.redirect("/login");
+          }
+        });
+
+      });
+      
+      app.get("/resetpassword/:token", (req, res) => {
+        
+        let token = req.params.token;
+        
+        Siawuser.findOne({ resetPassword: token, resetPasswordExpires: { $gte: Date.now() } }, (err, user) => {
+          if (err) {
+            console.log(err);
+            req.flash("error", "Password reset is invalid or has expired.");
+            res.render(process.cwd() + "/views/pug/resetpassword", { errors: [{ msg: "Password reset is invalid or has expired." }] });
+          }
+          
+          else {
+            res.render(process.cwd() + "/views/pug/resetpassword", { token });
+          }
+        });        
+      });
+      
+      app.post("/resetpassword/:token", [
+        check('password').isLength({ min: 8 }).withMessage("Password must be at least 8 characters"),
+        check("confirmpassword").custom((val, {req, loc, path}) => {
+          if (val !== req.body.password) {
+            throw new Error("Passwords don't match");
+          }
+          else {
+            return val;
+          }
+        })
+        ], checkValidationResult, (req, res) => {
+        
+        console.log("resetpassword");
+        let token = req.params.token;
+        let pass = req.body.password;
+        console.log("token : ", token);
+        
+        Siawuser.findOne({ resetPassword: token }, (err, user) => {
+          if (err) {
+            console.log(err);
+            req.flash("error", "Password reset is invalid or has expired.");
+            res.redirect("/login");
+          }
+          
+          else { // FIRST ELSE: USER FOUND
+            bcrypt.genSalt(10, (err, salt) => {
+              if (err) {
+                console.log(err);
+                res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Registration error: Please try again" }] });
+              }
+
+              else { // SECOND ELSE: PASSWORD SALTED
+                bcrypt.hash(pass, salt, (error, hash) => {
+                  if (error) {
+                    console.log(error);
+                    res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Registration error: Please try again" }] });
+                  }
+                  else { // THIRD ELSE: PASSWORD HASHED
+                    user.password = hash;
+                    user.save();
+                    req.login(user, async (login_err) => {
+                      if (login_err) {
+                        console.log(login_err);
+                        req.flash("error", "Password changed, but unable to log in. Please try logging in below.");
+                        res.redirect("/login");
+                      }
+                      
+                      else { // FOURTH ELSE: USER SAVED AND LOGGING IN
+                        
+                        req.flash("success", "Password successfully changed.");
+                        res.redirect("/admin");
+                      }
+                      
+                    });
+                  }
+                })
+              }
+            })
+          }
+        });        
+      });
+      
+      
+      app.get("/pollwatcherconfirm", (req, res) => {
+        res.render(process.cwd() + "/views/pug/pollwatcherconfirm");
+      });
+      
+      app.post("/pollwatcherconfirm", (req, res) => {
+        let email = req.body.email.toLowerCase();
+        let verification_token = req.body.token;
+        let pass = req.body.password;
+        let confirmpassword = req.body.confirmpassword;
+
+        
+        Siawuser.findOne({ email, verification_token }, (err, user) => {
+          if (err) {
+            console.log(err);
+            req.flash("error", "Token is invalid");
+            res.render(process.cwd() + "/views/pug/pollwatcherconfirm", { errors: [{ msg: "Invalid entry." }] });
+          }
+          
+          else { // FIRST ELSE: NO DATABASE ERROR
+            bcrypt.genSalt(10, (err, salt) => {
+              if (err) {
+                console.log(err);
+                res.render(process.cwd() + "/views/pug/pollwatcherconfirm", { errors: [{ msg: "Registration error: Please try again" }] });
+              }
+
+              else { // SECOND ELSE: PASSWORD SALTED
+                bcrypt.hash(pass, salt, (error, hash) => {
+                  if (error) {
+                    console.log(error);
+                    res.render(process.cwd() + "/views/pug/pollwatcherconfirm", { errors: [{ msg: "Registration error: Please try again" }] });
+                  }
+                  else { // THIRD ELSE: PASSWORD HASHED
+                    
+                    if (user) {
+                      user.password = hash;
+                      user.authenticated = true;
+                      user.save();
+                      req.login(user, (login_err) => {
+                        if (login_err) {
+                          console.log(login_err);
+                          req.flash("error", "Authentication successful, but unable to log in. Please try logging in below.");
+                          res.redirect("/login");
+                        }
+
+                        else { // FOURTH ELSE: USER SAVED AND LOGGING IN
+
+                          let admin = req.user.admin;
+
+                          req.flash("success", "You are registered and authenticated.");
+                          res.redirect("/admin", { admin });
+                        }
+
+                      });
+                    }
+                    else {
+                      res.render(process.cwd() + "/views/pug/pollwatcherconfirm", { msg: "No user found" });
+                    }
+                  }
+                })
+              }
+            })
+          }
+        })
+      });
+      
+      app.post("/deleteaccount", (req, res) => {
+        
+        if (req.user) {
+          let email = req.user.email;
+
+          Siawuser.findOneAndRemove({ email }, (err, doc) => {
+            if (err) {
+              req.flash("error", "Error: Please try again.");
+              res.redirect("/logout");
+            }
+
+            else {
+              req.flash("success", "Your account has been deleted");
+              res.redirect("/logout");
+            }
+          })
+        }
+        
+        else {
+          req.flash("Error: You must be signed in to access this route");
+          res.redirect("/login");
+        }
+      });
+      
+      app.get("/contact", (req, res) => {
+        res.render(process.cwd() + "/views/pug/contact");
+      });
+      
+      
       /*
       /
       / ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -292,12 +513,15 @@ module.exports = (app, db) => {
       /
       /
       / Pollwatcher pages
+      /
+      /choice
+      /watch
+      /voted
+      /report
       / vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
       /
       */
-      
-      
-      
+
       
       app.get("/choice", pollwatcherProtectedMiddleware, (req, res) => {
         let admin = req.user.admin;
@@ -432,6 +656,11 @@ module.exports = (app, db) => {
         });
       });
       
+      app.get("/pollwatcherdark", pollwatcherProtectedMiddleware, (req, res) => {
+        let authenticated = req.user.authenticated;
+        let admin = req.user.admin;
+        res.render(process.cwd() + "/views/pug/pollwatcherdark", { admin, authenticated });
+      });
       
       
       /*
@@ -773,7 +1002,6 @@ module.exports = (app, db) => {
             res.redirect("/pollwatchers");
           }
         });
-        
       });
       
       
@@ -806,6 +1034,7 @@ module.exports = (app, db) => {
         let admin = req.user.admin;
         res.render(process.cwd() + "/views/pug/configure", { admin });
       });
+      
       
       app.post("/addopponents", adminProtectedMiddleware, [
         check("opponents").custom((val) => {
@@ -848,15 +1077,14 @@ module.exports = (app, db) => {
         });
       });
       
-      app.post("/changeprecincts", (req, res) => {
+      
+      app.post("/changeprecincts", adminProtectedMiddleware, (req, res) => { // Change number of precincts in campagin
         let database = req.user.database;
         let new_no_of_precincts = parseInt(req.body.precincts);
 
         Campaign.findOne({ database })
         .exec()
         .then((doc) => {
-          console.log("doc : ", doc);
-
           // Step 1: Check if user added or subtracted precincts
           // Step 2: If subtracted, pop off the difference from the document array
           // Step 3: If added, copy the first precinct object in the campaign, create a loop so you change the precinct_number to the old total number of precincts + 1, push into array. Repeat until you reach the new total number of precincts
@@ -880,216 +1108,32 @@ module.exports = (app, db) => {
           else if (difference < 0) { // admin increased the number of precincts, so need to add them
 
             let obj = doc.precincts[0];
-            console.log("obj : ", obj);
 
             for (let i = 0; i > difference; i--) {
               len++; // increase last precinct added by one, so if user previously identified 40 precincts, this number is now 41
-              console.log("len++ : ", len);
               obj.number = len; // 41st precinct
-              doc.precincts.push(obj); // push object into precincts array
+              doc.precincts.push(obj); // push 41st precinct object into precincts array
             }
+            
             doc.save();
             req.flash("success", "Precincts successfully updated.")
             res.render(process.cwd() + "/views/pug/configure", { successes: req.flash("success") });
-
           }
 
           else { // difference is 0 (they entered same number as before)
-            res.render(process.cwd() + "/views/pug/configure", { errors: [{ msg: "Same number of precincts as already on file." }] });
-
+            req.flash("error", "Same number of precincts as already on file.");
+            res.render(process.cwd() + "/views/pug/configure", { errors: req.flash("error") });
           }
-
         })
-      .catch((err) => {
+        .catch((err) => {
           console.log(err);
-          res.render("/views/pug/configure", { errors: [{ msg: "Error: Unable to change precinct numbers. Please try again." }] });
+          req.flash("error", "Error: Unable to change precincts. Please try again.");
+          res.render("/views/pug/configure", { errors: req.flash("error") });
         })
       })
 
       
-      app.get("/requestreset", (req, res) => {
-        res.render(process.cwd() + "/views/pug/requestreset");
-      });
-      
-      app.post("/requestreset", (req, res) => {
-        console.log("requestreset");
-        let token = randomstring.generate();
-
-        let email = req.body.email.toLowerCase();
-
-        let date = Date.now() + 3600000;
-        
-        console.log("token : ", token);
-
-        Siawuser.findOne({ email }, async (err, user) => {
-          if (err) {
-            console.log(err);
-            req.flash("error", err);
-            return res.render(process.cwd() + "/views/pug/requestreset", { errors: req.flash("error") });
-          }
-
-          else { // User found
-            console.log("hello inside user");
-            user.resetPassword = token;
-            user.save();
-
-            let user_first = user.user_first;
-
-            const html = '<p>Hi ' + user_first + ',</p><p>A password reset was recently requested for this email address</p><p>To change your password, use the following link:</p><p><a href="https://election-day3.glitch.me/resetpassword/' + token + '">https://election-day3.glitch.me/resetpassword/' + token + '"</a>.</p><p>If you didn\'t make this request, you can ignore this message and your password will remain unchanged.</p><p>Have a pleasant day!</p>';
-            await sendEmail("scott@voterturnout.com", email, "Your password reset request", html);
-
-            req.flash("success", "An email has been sent to the email address you provided. Click the link to reset your password.");
-            res.redirect("/login");
-          }
-        });
-
-      });
-      
-      app.get("/resetpassword/:token", (req, res) => {
-        
-        let token = req.params.token;
-        
-        Siawuser.findOne({ resetPassword: token, resetPasswordExpires: { $gte: Date.now() } }, (err, user) => {
-          if (err) {
-            console.log(err);
-            req.flash("error", "Password reset is invalid or has expired.");
-            res.render(process.cwd() + "/views/pug/resetpassword", { errors: [{ msg: "Password reset is invalid or has expired." }] });
-          }
-          
-          else {
-            res.render(process.cwd() + "/views/pug/resetpassword", { token });
-          }
-        });        
-      });
-      
-      app.post("/resetpassword/:token", [
-        check('password').isLength({ min: 8 }).withMessage("Password must be at least 8 characters"),
-        check("confirmpassword").custom((val, {req, loc, path}) => {
-          if (val !== req.body.password) {
-            throw new Error("Passwords don't match");
-          }
-          else {
-            return val;
-          }
-        })
-        ], checkValidationResult, (req, res) => {
-        
-        console.log("resetpassword");
-        let token = req.params.token;
-        let pass = req.body.password;
-        console.log("token : ", token);
-        
-        Siawuser.findOne({ resetPassword: token }, (err, user) => {
-          if (err) {
-            console.log(err);
-            req.flash("error", "Password reset is invalid or has expired.");
-            res.redirect("/login");
-          }
-          
-          else { // FIRST ELSE: USER FOUND
-            bcrypt.genSalt(10, (err, salt) => {
-              if (err) {
-                console.log(err);
-                res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Registration error: Please try again" }] });
-              }
-
-              else { // SECOND ELSE: PASSWORD SALTED
-                bcrypt.hash(pass, salt, (error, hash) => {
-                  if (error) {
-                    console.log(error);
-                    res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Registration error: Please try again" }] });
-                  }
-                  else { // THIRD ELSE: PASSWORD HASHED
-                    user.password = hash;
-                    user.save();
-                    req.login(user, async (login_err) => {
-                      if (login_err) {
-                        console.log(login_err);
-                        req.flash("error", "Password changed, but unable to log in. Please try logging in below.");
-                        res.redirect("/login");
-                      }
-                      
-                      else { // FOURTH ELSE: USER SAVED AND LOGGING IN
-                        
-                        req.flash("success", "Password successfully changed.");
-                        res.redirect("/admin");
-                      }
-                      
-                    });
-                  }
-                })
-              }
-            })
-          }
-        });        
-      });
-      
-      app.get("/pollwatcherconfirm", (req, res) => {
-        res.render(process.cwd() + "/views/pug/pollwatcherconfirm");
-      });
-      
-      app.post("/pollwatcherconfirm", (req, res) => {
-        let email = req.body.email.toLowerCase();
-        let verification_token = req.body.token;
-        let pass = req.body.password;
-        let confirmpassword = req.body.confirmpassword;
-
-        
-        Siawuser.findOne({ email, verification_token }, (err, user) => {
-          if (err) {
-            console.log(err);
-            req.flash("error", "Token is invalid");
-            res.render(process.cwd() + "/views/pug/pollwatcherconfirm", { errors: [{ msg: "Invalid entry." }] });
-          }
-          
-          else { // FIRST ELSE: NO DATABASE ERROR
-            bcrypt.genSalt(10, (err, salt) => {
-              if (err) {
-                console.log(err);
-                res.render(process.cwd() + "/views/pug/pollwatcherconfirm", { errors: [{ msg: "Registration error: Please try again" }] });
-              }
-
-              else { // SECOND ELSE: PASSWORD SALTED
-                bcrypt.hash(pass, salt, (error, hash) => {
-                  if (error) {
-                    console.log(error);
-                    res.render(process.cwd() + "/views/pug/pollwatcherconfirm", { errors: [{ msg: "Registration error: Please try again" }] });
-                  }
-                  else { // THIRD ELSE: PASSWORD HASHED
-                    
-                    if (user) {
-                      user.password = hash;
-                      user.authenticated = true;
-                      user.save();
-                      req.login(user, (login_err) => {
-                        if (login_err) {
-                          console.log(login_err);
-                          req.flash("error", "Authentication successful, but unable to log in. Please try logging in below.");
-                          res.redirect("/login");
-                        }
-
-                        else { // FOURTH ELSE: USER SAVED AND LOGGING IN
-
-                          let admin = req.user.admin;
-
-                          req.flash("success", "You are registered and authenticated.");
-                          res.redirect("/admin", { admin });
-                        }
-
-                      });
-                    }
-                    else {
-                      res.render(process.cwd() + "/views/pug/pollwatcherconfirm", { msg: "No user found" });
-                    }
-                  }
-                })
-              }
-            })
-          }
-        })
-      });
-      
-      app.post("/resendverification", (req, res) => { // resend verification button at /payment page
+      app.post("/resendverification", adminMiddleware, (req, res) => { // resend verification button at /payment page
         let email = req.user.email;
         let user_first = req.user.user_first;
         let verification_token = randomstring.generate();
@@ -1105,49 +1149,23 @@ module.exports = (app, db) => {
           try {
             await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
             req.flash("success", "Email sent!");
-            res.redirect("/admin");
-          }
-          catch (email_err) {
-            req.flash("error", "Could not send verification email. Please click 'Send verification' to try again.");
             res.redirect("/payment");
           }
-          
-            
+          catch (email_err) {
+            req.flash("error", "Error: Could not send verification email. Please click 'Send verification' to try again.");
+            res.redirect("/payment");
+          }
+
         })
         .catch((err) => {
           console.log(err);
           req.flash("error", "An error ocurred. Please try again.");
           res.redirect("/payment");
         });
-          
-          
       });
       
-      app.post("/deleteaccount", (req, res) => {
-        console.log("deleteaccount");
-        let email = req.user.email;
-        
-        Siawuser.findOneAndRemove({ email }, (err, doc) => {
-          if (err) {
-            req.flash("error", "Error: Please try again.");
-            res.redirect("/logout");
-          }
-          
-          else {
-            req.flash("success", "Your account has been deleted");
-            res.redirect("/logout");
-          }
-          
-        })
-        
-        
-      });
       
-      app.get("/contact", (req, res) => {
-        res.render(process.cwd() + "/views/pug/contact");
-      });
-      
-      app.post("/export", (req, res) => {
+      app.post("/export", adminProtectedMiddleware, (req, res) => {
         let database = req.user.database;
         
         // set up variables for piping new data using jsonstream module and json2csv module
@@ -1186,12 +1204,6 @@ module.exports = (app, db) => {
           }
         
         });
-      });
-      
-      app.get("/pollwatcherdark", pollwatcherMiddleware, (req, res) => {
-        let authenticated = req.user.authenticated;
-        let admin = req.user.admin;
-        res.render(process.cwd() + "/views/pug/pollwatcherdark", { admin, authenticated });
       });
       
       
