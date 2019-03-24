@@ -4,16 +4,17 @@ const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const { check, validationResult } = require('express-validator/check');
 const fs = require("fs");
-const jwt = require("jsonwebtoken"); // using?
+const jsonstream = require("JSONStream");
 const path = require("path"); // native to Node (using?)
 const passport = require("passport");
 const mongoose = require('mongoose');
 const mongo = require('mongodb').MongoClient;
 const nodemailer = require("nodemailer");
 const ObjectId = require('mongodb').ObjectID; // using?
+const json2csvtransform = require('json2csv').Transform;
 const randomstring = require("randomstring");
+const request = require("request");
 const Siawuser = require("./models/siawuser.js"); // admins and pollwatchers
-const Siaw = require("./models/Siaw.js"); // voters
 const Campaign = require("./models/campaign.js");
 const transport = nodemailer.createTransport({
   service: "Mailgun",
@@ -32,10 +33,6 @@ let stripe = require("stripe")("sk_test_4eC39HqLyjWDarjtT1zdp7dc");
 
 const multer = require("multer");
 const csv = require("csvtojson");
-
-// const parserParams = {
-//   delimiter: ";"
-// }
 
 const storage = multer.diskStorage({
   destination: "public/uploads",
@@ -326,8 +323,6 @@ module.exports = (app, db) => {
       
       app.post("/report", (req, res) => {
         
-        console.log("hello");
-        
         let precinct = req.user.precinct;
         let database = req.user.database;
         let opponent_votes = req.body;
@@ -375,18 +370,7 @@ module.exports = (app, db) => {
         })
         .catch((err) => {
           console.log(err);
-        });;
-        /*  
-        , {
-          $set: { "precincts.$.opponent_votes": opponent_votes },
-          $set: { "precincts.$.total_votes": total_votes }
-        }, (err, doc) => {
-          if (err) { console.log(err); }
-          else {
-            console.log("doc : ", doc);
-            res.redirect("/report");
-          }
-        }) */
+        });
       });
       
       app.get("/electionresults", adminMiddleware, (req, res) => {
@@ -920,7 +904,8 @@ module.exports = (app, db) => {
         Siawuser.findOne({ email }, async (err, user) => {
           if (err) {
             console.log(err);
-            return res.render(process.cwd() + "/views/pug/requestreset", { errors: [{ msg: "Email does not exist." }] });
+            req.flash("error", err);
+            return res.render(process.cwd() + "/views/pug/requestreset", { errors: req.flash("error") });
           }
 
           else { // User found
@@ -1136,6 +1121,44 @@ module.exports = (app, db) => {
         })
         
         
+      });
+      
+      app.get("/contact", (req, res) => {
+        res.render(process.cwd() + "/views/pug/contact");
+      });
+      
+      app.get("/export", (req, res) => {
+        // let database = req.user.database;
+        
+        // set up variables for piping new data using jsonstream module and json2csv module
+        let date = Date.now();
+        const file = "public/uploads/myfile" + date + ".csv";
+        const output = fs.createWriteStream(file, { encoding: 'utf8' });
+        const json2csv = new json2csvtransform();
+        
+        
+        db.collection("Negron-1552770576429").find({}, (err, cursor) => {
+          
+          if (err) {
+            console.log(err);
+            req.flash("error", err);
+            res.redirect("/admin");
+          }
+          
+          else {
+            try {
+              // pipe from the cursor (from Mongo), then stringify using jsonstream, then pipe to json2csv, then pipe to the output file
+              let stream = cursor.stream().pipe(jsonstream.stringify()).pipe(json2csv).pipe(output);
+              stream.on("finish", () => { res.download(file) });
+            } catch (err) {
+              console.error(err);
+              console.log("done?");
+
+              res.json({ done: "done?" });
+            }
+          }
+        
+        });
       });
       
       

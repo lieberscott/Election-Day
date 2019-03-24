@@ -23,7 +23,7 @@ html(lang="en")
         h3 Election Day App
         p Ready to register? Fill out the information below accurately. On the next page you will be asked to enter your credit card information.
         div.form
-          form.login-form(method="POST" action="/register")
+          form.login-form(method="POST" action="/register" onsubmit="return confirm('Make sure information below is correct, press OK to continue.')")
             label(for="email") Email
             input(name="email" type="text" placeholder="Your email")
             label(for="password") Password (must be at least 8 characters)
