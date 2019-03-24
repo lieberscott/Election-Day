@@ -57,6 +57,7 @@ $(document).on("click", ".fa-times-circle", (e) => {
     
     $.ajax({
       url: "/voted",
+      method: "POST",
       data: { clickedId, pollwatcher },
       success: () => { console.log("success") },
       failure: () => { console.log("failure") }

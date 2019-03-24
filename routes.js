@@ -72,359 +72,19 @@ module.exports = (app, db) => {
         
       });
       
-      
-      
-      
-      /*
-      /
-      / ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-      / Pages in which you don't need to be signed in
-      /
-      /
-      / Pollwatcher pages
-      / vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-      /
-      */
-      
-      
-      
-      
-      app.get("/choice", pollwatcherProtectedMiddleware, (req, res) => {
-        let admin = req.user.admin;
-        res.render(process.cwd() + "/views/pug/choice.pug", { admin });
-      });
-      
-      app.get("/watch", pollwatcherProtectedMiddleware, (req, res) => { // pollwatcher watching their location
-        
-        let admin = req.user.admin;
-        
-        let database = req.user.database;
-        let precinct = req.user.precinct.toString();
-        let ward = req.user.ward.toString();
-
-        db.collection(database).find( { ward, precinct, voted: "0" }, { sort: { lastname: 1 } }, (err, cursor) => {
-          if (err) {
-            console.log(err);
-            req.flash("error", "Error retrieving data: Please try again");
-            res.redirect("/choice");
-          }
-          else {
-            let arr = [];
-            cursor.toArray()
-            .then((docs) => {
-              arr = docs;
-              res.render(process.cwd() + '/views/pug/watch', { admin, arr });
-            })
-            .catch((error) => {
-              console.log(error);
-              req.flash("error", "Error retrieving records: Please try again");
-              res.redirect("/choice");
-            });
-          }
-        });
-      });
-      
-      
-      
-      
-      
-      /*
-      /
-      / ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-      / Pollwatcher pages
-      /
-      /
-      / Admin pages
-      / vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-      /
-      */
-      
-      
-      
-      
-      app.get("/upload", adminProtectedMiddleware, (req, res) => {
-        let admin = req.user.admin;
-        
-        const directory = 'public/uploads';
-
-        fs.readdir(directory, (err, files) => {
-          if (err) {
-            console.log(err);
-            res.render(process.cwd() + "/views/pug/upload.pug", { admin });
-          }
-
-          for (const file of files) {
-            fs.unlink(path.join(directory, file), err => {
-              if (err) {
-                console.log(err);
-                res.render(process.cwd() + "/views/pug/upload.pug", { admin });
-              }
-            });
-          }
-          res.render(process.cwd() + "/views/pug/upload.pug", { admin });
-        });
-        
-      });
-      
-      app.post("/addfile", adminProtectedMiddleware, (req, res) => {
-        let admin = req.user.admin;
-        upload(req, res, (err) => {
-          if (err) {
-            console.log(err);
-            req.flash("error", err);
-            res.render(process.cwd() + "/views/pug/upload.pug", { admin, errors: req.flash("error") });
-          }
-          else {
-            if (req.file == undefined) {
-              req.flash("error", "No file selected.");
-              res.redirect("/upload");
-            }
-            else {
-              const csvFilePath = "public/uploads/" + req.file.filename;
-              filename = req.file.filename;
-              csv()
-              .fromFile(csvFilePath)
-              .then((jsonObj)=> {
-                let obj = jsonObj.slice(0, 10);
-                res.render(process.cwd() + "/views/pug/upload.pug", { admin, file: obj });
-              });
-            }
-          }
-        });
-      });
-      
-      app.post("/addtomongo", adminProtectedMiddleware, (req, res) => {
-
-        let opt = req.body.radios; // "addto" or "override"
-        let database = req.user.database;
-
-        const csvFilePath = "public/uploads/" + filename;
-        csv()
-        .fromFile(csvFilePath)
-        .then((jsonObj)=> {
-
-          if (opt == "override") {
-            db.collection(database).remove({}, (err, removed) => {
-              if (err) {
-                req.flash("error", "Unknown error: Please try again.");
-                res.redirect("/upload");
-              }
-              else {
-                db.collection(database).insertMany(jsonObj, (err, doc) => {
-                  if (err) {
-                    req.flash("error", "Error: Previous list data removed, but unable to add new items. Please try again.");
-                    res.redirect("/upload");
-                  }
-                  else {
-                    console.log("success!");
-                    req.flash("success", "Success! New data uploaded");
-                    res.redirect("/upload");
-                  }
-                });
-              }
-            });
-          }
-
-          else if (opt == "addto") {
-            db.collection(database).insertMany(jsonObj, { ordered: false }, (err, doc) => {
-              if (err) {
-                if (err.result.result.ok >= 1) { // insertmany had conflicts with van_id, but some items were new
-                  req.flash("success", "Success! File uploaded.");
-                  req.flash("success", "Note: Your file contained records that were already in your database. These records were not double-added, while unique records were added successfully.");
-                  res.redirect("/upload");
-                }
-                else { // insertmany had conflicts with van_id, and none of the items were new
-                  req.flash("error", "Documents failed to upload. Please try again.");
-                  res.redirect("/upload");
-                }
-              }
-              else {
-                console.log("success!");
-                req.flash("success", "Documents added!");
-                res.redirect("/upload");
-              }
-            });
-          }
-        })
-      });
-      
-      app.post("/stripe", (req, res) => {
-
-        // Token is created using Checkout or Elements!
-        // Get the payment token ID submitted by the form:
-        const token = req.body.stripeToken; // Using Express
-
-        (async () => {
-          const charge = await stripe.charges.create({
-            amount: 999,
-            currency: 'usd',
-            description: 'Example charge',
-            source: token,
-          });
-          
-          let id = req.user._id;
-                              
-          if (charge.paid) {
-            db.collection("siawusers").updateOne({ _id: id }, { $set: { paid: true } }, (err, doc) => {
-              if (err) {
-                console.log(err)
-                req.flash("error", err);
-                res.redirect("/payment");
-              }
-              else {
-                console.log(doc);
-                req.flash("success", "Thank you for your payment. You are now free to use the Election Day platform.");
-                res.redirect("/admin");
-              }
-            });
-          }
-          
-        })();
-        
-        
-      });
-      
-      
-      app.get("/voted", (req, res) => {
-        
-        let database = req.user.database;
-        
-        let id = ObjectId(req.query.clickedId);
-        let pollwatcher = req.query.pollwatcher;
-        let tempdate= new Date().toString().split("GMT+0000 (UTC)")[0].split(" 2019");
-        let d = tempdate[1].split(":");
-        let time = Number(d[0]);
-        let t = (time % 12) - 5;
-        if (time == 0) { t = 5 }
-        else if (time == -1) { t = 4 }
-        else if (time == -2) { t = 3 }
-        else if (time == -3) { t = 2 }
-        else if (time == -4) { t = 1 }
-        else if (time == -5) { t = 12 }
-        let date = tempdate[0] + " " + t + ":" + d[1] + ":" + d[2];        
-        
-        
-        db.collection(database).findOneAndUpdate({ _id: id }, { $set: { voted : "1", enteredBy: pollwatcher, date } }, (err, doc) => {
-          if (err) { console.log(err) }
-          else {
-            console.log("success : ", err);
-          }
-        })
-      });
-
-
       app.get('/login', loginpageMiddleware, (req, res) => {
         res.render(process.cwd() + "/views/pug/login.pug");
       });
 
-
-      // app.post('/login', (req, res, next) => {
-      //   passport.authenticate("local", {
-      //     successRedirect: "/",
-      //     failureRedirect: "/login",
-      //     failureFlash: true
-      //   })(req, res, next);
-      // });
-      
-      app.post('/login', passport.authenticate("local", { failureRedirect: "/login", failureFlash: true }), (req, res) => {
-
-        if (req.user.admin && req.user.paid && req.user.authenticated) {
-          res.redirect('/admin');
-        }
-        else if (req.user.admin && (!req.user.paid || !req.user.authenticated)) {
-          res.redirect('/payment');
-        }
-        
-        else { // req.user.admin = false (pollwatcher)
-          res.redirect("/choice");
-        }
+      app.post('/login', (req, res, next) => {
+        passport.authenticate("local", {
+          successRedirect: "/login",
+          failureRedirect: "/login",
+          failureFlash: true
+        })(req, res, next);
       });
       
-      app.get("/report", /* mainpageMiddleware, */ (req, res) => {
-        let precinct = req.user.precinct;
-        let database = req.user.database;
-
-        db.collection("campaigns").findOne({ database }, (err, doc) => {
-          if (err) {
-            console.log(err);
-            req.flash("error", "Could not retrieve data. Please try again.");
-            res.render(process.cwd() + "/views/pug/report");
-          }
-
-          else {
-            res.render(process.cwd() + "/views/pug/report", { doc, precinct });
-          }
-
-        })
-      });
       
-      app.post("/report", (req, res) => {
-        
-        let precinct = req.user.precinct;
-        let database = req.user.database;
-        let opponent_votes = req.body;
-        let total_votes = req.body.total;
-        delete opponent_votes.total;
-        
-        let candidates = Object.keys(opponent_votes);
-        let len = candidates.length;
-        
-        for (let i = 0; i < len; i++) {
-          let candidate = candidates[i];
-          let str = opponent_votes[candidate];
-          let num = parseInt(str);
-          opponent_votes[candidate] = num;
-        }
-        
-        
-        let tempdate= new Date().toString().split("GMT+0000 (UTC)")[0].split(" 2019");
-        let d = tempdate[1].split(":");
-        let time = Number(d[0]);
-        let t = (time % 12) - 5;
-        if (time == 0) { t = 5 }
-        else if (time == -1) { t = 4 }
-        else if (time == -2) { t = 3 }
-        else if (time == -3) { t = 2 }
-        else if (time == -4) { t = 1 }
-        else if (time == -5) { t = 12 }
-        let date = tempdate[0] + " " + t + ":" + d[1] + ":" + d[2];
-        let user_first = req.user.user_first;
-        let user_last = req.user.user_last;
-        
-        let last_updated = date + " by " + user_first + " " + user_last;
-        
-        console.log(last_updated);
-        
-        // update database
-        Campaign.findOne({ database })
-        .exec()
-        .then((doc) => {
-          doc.precincts[precinct - 1].opponent_votes = opponent_votes; // <- HACKY. USING [precinct - 1] TO IDENTIFY THE ARRAY INDEX, RATHER THAN CAPTURING THE OBJECT FOR WHICH PRECINCT = 1. PRECINCT 1 WILL BE AT INDEX 0, PRECINCT 2 AT INDEX 1, AND SO ON.
-          doc.precincts[precinct - 1].total_votes = total_votes; // <- HACKY
-          doc.precincts[precinct - 1].last_updated = last_updated; // <- HACKY
-          doc.save();
-          res.redirect("/report");
-        })
-        .catch((err) => {
-          console.log(err);
-        });
-      });
-      
-      app.get("/electionresults", adminMiddleware, (req, res) => {
-        
-        let database = req.user.database;
-        
-        db.collection('campaigns').findOne({ database }, (err, doc) => {
-          if (err) { console.log(err); }
-          else {
-            let obj = {};
-            obj = doc;
-            res.render(process.cwd() + '/views/pug/electionresults', { obj, admin: true });
-          }
-        })
-      });
-      
-
       app.get("/logout", (req, res) => {
         req.logout();
         res.redirect("/login");
@@ -584,164 +244,6 @@ module.exports = (app, db) => {
             });
           }
         });
-      });      
-      app.get("/payment", adminMiddleware, (req, res) => {
-        let admin = req.user.admin;
-        let paid = req.user.paid;
-        let authorized = req.user.authorized;
-        res.render(process.cwd() + '/views/pug/payment', { admin, paid, authorized });
-      });
-      
-      app.get("/admin", adminProtectedMiddleware, (req, res) => {
-        let admin = req.user.admin;
-        res.render(process.cwd() + '/views/pug/admin', { admin });
-      });
-      
-      
-      app.get("/precincts", /* adminMiddleware, */ (req, res) => {
-        
-        let database = req.user.database;
-        let admin = req.user.admin;
-        
-        let x = db.collection(database).aggregate([
-          { $match : { } },
-          // sorts by precinct, and gets number who voted and who haven't voted
-          { $group : { _id: "$precinct", voted: { $sum: { $cond: [ { $eq: ["$voted", "1"] }, 1, 0 ] } }, notvoted: { $sum: { $cond: [{ $eq: ["$voted", "1"] }, 0, 1 ] } } } },
-          { $sort: { _id: 1 } }
-        ], (err, cursor) => {
-          if (err) { console.log(err); }
-          else {
-            let arr;
-            cursor.toArray()
-            .then((docs) => {
-              arr = docs;
-              console.log(arr);
-              res.render(process.cwd() + '/views/pug/precincts', { arr, admin });
-            });
-          }
-        });
-
-      });
-      
-      app.get("/pollwatchers", (req, res) => {
-        // get pollwatcher info from database
-        let database = req.user.database;
-        
-        
-        Siawuser.find({ database, admin: false },  (err, docs) => {
-          if (err) { console.log(err); }
-          else {
-            console.log("Docs : ", docs);
-            res.render(process.cwd() + "/views/pug/pollwatchers", { arr: docs, admin: true });
-          }
-        });
-      });
-      
-      
-      app.post("/pollwatchers", (req, res) => {
-        // change the precinct/phone number/email/name on a pollwatcher
-        let arr = [];     
-        res.render(process.cwd() + "/views/pug/pollwatchers", { arr, admin: true });
-      });
-      
-      app.get("/addpollwatcher", (req, res) => {
-        res.render(process.cwd() + "/views/pug/addpollwatcher", { admin: true });
-      });
-      
-      
-      app.post("/addpollwatcher", /* add expressValidator middleware, */ (req, res) => {
-        // add pollwatcher to database, add verification to database, and send email to pollwatcher
-        
-        // verification variables
-        const token = randomstring.generate();
-        
-        // pollwatcher variables
-        const email = req.body.email.toLowerCase();
-        const user_first = req.body.firstname || "";
-        const user_last = req.body.lastname || "";
-        const precinct = req.body.precinct || "";
-        
-        // campaign variables
-        const database = req.user.database;
-        const public_name = req.user.public_name;
-        const ward = req.user.ward;
-        const no_of_precincts = req.user.no_of_precincts;
-        const candidate_first = req.user.candidate_first;
-        const candidate_last = req.user.candidate_last;
-        
-        let user = new Siawuser({
-          email,
-          user_first,
-          user_last,
-          ward,
-          precinct,
-          database,
-          public_name,
-          verification_token: token,
-          admin: false,
-          paid: false,
-          authenticated: false
-        });
-        
-        
-        Siawuser.create(user, async (err, doc) => {
-          
-          if (err) {
-            console.log("add pollwatcher error : ", err);
-            req.flash("danger", "User already signed up for another campaign. If user is not in your campaign, and you want them for your campaign, they must delete their current account and have you invte them to your campaign.");
-            console.log(req.flash);
-            res.render(process.cwd() + "/views/pug/addpollwatcher", { errors: [{ msg: "Second message for testing purposes" }] });
-          }
-          
-          else { // no errors
-            
-            const html = '<p>Hi ' + user_first + ',</p><p>You have been requested to join the ' + public_name + ' campaign.</p><p>Your token is ' + token + '</p><p>Use the following link to create an account and complete your registration:</p><p><a href="https://election-day3.glitch.me/pollwatcherconfirm">https://election-day3.glitch.me/pollwatcherconfirm</a></p><p>Have a pleasant day!</p>';
-            
-            
-            await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
-            
-            
-            req.flash("success", "User added. Have user check their email to authenticate their account.");
-            res.render(process.cwd() + "/views/pug/addpollwatcher", { errors: [{ msg: "Second message for testing purposes" }] });
-          }
-        });
-
-      });
-      
-      app.post("/deletepollwatcher", (req, res) => {
-        let id = req.body.clickedId;
-        let database = req.user.database; // <- necessary?
-        
-        Siawuser.findOneAndRemove({ _id: id }, (err, doc) => {
-          if (err) { console.log(err); }
-          else {
-
-            console.log(doc);
-            res.json({ success: "success" });
-          }
-        });
-      });
-      
-      
-      app.post("/changeprecinct/:userid", (req, res) => {
-        let precinct = req.body.precinct;
-        let id = req.params.userid;
-        
-        console.log(precinct);
-        console.log(id);
-        
-        Siawuser.findOneAndUpdate({ _id: id }, { precinct }, { new: true }, (err, doc) => {
-          if (err) {
-            console.log(err);
-            res.redirect("/pollwatchers"); // add error: "Error: Unable to change precinct. Please try again. If the problem persists, contact support
-          }
-          else {
-            doc.precinct = precinct;
-            doc.save();
-            res.redirect("/pollwatchers");
-          }
-        });
-        
       });
       
       
@@ -783,7 +285,499 @@ module.exports = (app, db) => {
       });
       
       
-      app.get("/view/:precinct", adminMiddleware, (req, res) => {
+      /*
+      /
+      / ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      / Pages in which you don't need to be signed in
+      /
+      /
+      / Pollwatcher pages
+      / vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+      /
+      */
+      
+      
+      
+      
+      app.get("/choice", pollwatcherProtectedMiddleware, (req, res) => {
+        let admin = req.user.admin;
+        res.render(process.cwd() + "/views/pug/choice.pug", { admin });
+      });
+      
+      app.get("/watch", pollwatcherProtectedMiddleware, (req, res) => { // pollwatcher watching their location
+        
+        let admin = req.user.admin;
+        
+        let database = req.user.database;
+        let precinct = req.user.precinct.toString();
+        let ward = req.user.ward.toString();
+
+        db.collection(database).find( { ward, precinct, voted: "0" }, { sort: { lastname: 1 } }, (err, cursor) => {
+          if (err) {
+            console.log(err);
+            req.flash("error", "Error retrieving data: Please try again");
+            res.redirect("/choice");
+          }
+          else {
+            let arr = [];
+            cursor.toArray()
+            .then((docs) => {
+              arr = docs;
+              res.render(process.cwd() + '/views/pug/watch', { admin, arr });
+            })
+            .catch((error) => {
+              console.log(error);
+              req.flash("error", "Error retrieving records: Please try again");
+              res.redirect("/choice");
+            });
+          }
+        });
+      });
+      
+      app.post("/voted", pollwatcherProtectedMiddleware, (req, res) => {
+        
+        let database = req.user.database;
+        
+        let id = ObjectId(req.query.clickedId);
+        let pollwatcher = req.query.pollwatcher;
+        let tempdate= new Date().toString().split("GMT+0000 (UTC)")[0].split(" 2019");
+        let d = tempdate[1].split(":");
+        let time = Number(d[0]);
+        let t = (time % 12) - 5;
+        if (time == 0) { t = 5 }
+        else if (time == -1) { t = 4 }
+        else if (time == -2) { t = 3 }
+        else if (time == -3) { t = 2 }
+        else if (time == -4) { t = 1 }
+        else if (time == -5) { t = 12 }
+        let date = tempdate[0] + " " + t + ":" + d[1] + ":" + d[2];        
+        
+        
+        db.collection(database).findOneAndUpdate({ _id: id }, { $set: { voted : "1", enteredBy: pollwatcher, date } }, (err, doc) => {
+          if (err) { console.log(err) }
+          else {
+            console.log("success : ", err);
+          }
+        })
+      });
+      
+      
+      app.get("/report", pollwatcherProtectedMiddleware, (req, res) => { // pollwatcher page for reporting numbers
+        let precinct = req.user.precinct;
+        let database = req.user.database;
+
+        db.collection("campaigns").findOne({ database }, (err, doc) => {
+          if (err) {
+            console.log(err);
+            req.flash("error", "Could not retrieve data. Please try again.");
+            res.render(process.cwd() + "/views/pug/report");
+          }
+
+          else {
+            res.render(process.cwd() + "/views/pug/report", { doc, precinct });
+          }
+
+        })
+      });
+      
+      app.post("/report", (req, res) => { // pollwatcher page for reporting numbers
+        
+        let precinct = req.user.precinct;
+        let database = req.user.database;
+        let opponent_votes = req.body;
+        let total_votes = req.body.total;
+        delete opponent_votes.total;
+        
+        let candidates = Object.keys(opponent_votes);
+        let len = candidates.length;
+        
+        for (let i = 0; i < len; i++) {
+          let candidate = candidates[i];
+          let str = opponent_votes[candidate];
+          let num = parseInt(str);
+          opponent_votes[candidate] = num;
+        }
+        
+        
+        let tempdate= new Date().toString().split("GMT+0000 (UTC)")[0].split(" 2019");
+        let d = tempdate[1].split(":");
+        let time = Number(d[0]);
+        let t = (time % 12) - 5;
+        if (time == 0) { t = 5 }
+        else if (time == -1) { t = 4 }
+        else if (time == -2) { t = 3 }
+        else if (time == -3) { t = 2 }
+        else if (time == -4) { t = 1 }
+        else if (time == -5) { t = 12 }
+        let date = tempdate[0] + " " + t + ":" + d[1] + ":" + d[2];
+        let user_first = req.user.user_first;
+        let user_last = req.user.user_last;
+        
+        let last_updated = date + " by " + user_first + " " + user_last;
+        
+        console.log(last_updated);
+        
+        // update database
+        Campaign.findOne({ database })
+        .exec()
+        .then((doc) => {
+          doc.precincts[precinct - 1].opponent_votes = opponent_votes; // <- HACKY. USING [precinct - 1] TO IDENTIFY THE ARRAY INDEX, RATHER THAN CAPTURING THE OBJECT FOR WHICH PRECINCT = 1. PRECINCT 1 WILL BE AT INDEX 0, PRECINCT 2 AT INDEX 1, AND SO ON.
+          doc.precincts[precinct - 1].total_votes = total_votes; // <- HACKY
+          doc.precincts[precinct - 1].last_updated = last_updated; // <- HACKY
+          doc.save();
+          res.redirect("/report");
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+      });
+      
+      
+      
+      /*
+      /
+      / ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      / Pollwatcher pages
+      /
+      /
+      / Admin pages
+      / vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+      /
+      */
+      
+      
+      app.get("/payment", adminMiddleware, (req, res) => {
+        let admin = req.user.admin;
+        let paid = req.user.paid;
+        let authorized = req.user.authorized;
+        res.render(process.cwd() + '/views/pug/payment', { admin, paid, authorized });
+      });
+      
+      
+      app.get("/admin", adminProtectedMiddleware, (req, res) => {
+        let admin = req.user.admin;
+        res.render(process.cwd() + '/views/pug/admin', { admin });
+      });
+      
+      
+      app.get("/upload", adminProtectedMiddleware, (req, res) => {
+        let admin = req.user.admin;
+        
+        const directory = 'public/uploads';
+
+        fs.readdir(directory, (err, files) => {
+          if (err) {
+            console.log(err);
+            res.render(process.cwd() + "/views/pug/upload.pug", { admin });
+          }
+
+          for (const file of files) {
+            fs.unlink(path.join(directory, file), err => {
+              if (err) {
+                console.log(err);
+                res.render(process.cwd() + "/views/pug/upload.pug", { admin });
+              }
+            });
+          }
+          res.render(process.cwd() + "/views/pug/upload.pug", { admin });
+        });
+        
+      });
+      
+      app.post("/addfile", adminProtectedMiddleware, (req, res) => {
+        let admin = req.user.admin;
+        upload(req, res, (err) => {
+          if (err) {
+            console.log(err);
+            req.flash("error", err);
+            res.render(process.cwd() + "/views/pug/upload.pug", { admin, errors: req.flash("error") });
+          }
+          else {
+            if (req.file == undefined) {
+              req.flash("error", "No file selected.");
+              res.redirect("/upload");
+            }
+            else {
+              const csvFilePath = "public/uploads/" + req.file.filename;
+              filename = req.file.filename;
+              csv()
+              .fromFile(csvFilePath)
+              .then((jsonObj)=> {
+                let obj = jsonObj.slice(0, 10);
+                res.render(process.cwd() + "/views/pug/upload.pug", { admin, file: obj });
+              });
+            }
+          }
+        });
+      });
+      
+      app.post("/addtomongo", adminProtectedMiddleware, (req, res) => {
+
+        let opt = req.body.radios; // "addto" or "override"
+        let database = req.user.database;
+
+        const csvFilePath = "public/uploads/" + filename;
+        csv()
+        .fromFile(csvFilePath)
+        .then((jsonObj)=> {
+
+          if (opt == "override") {
+            db.collection(database).remove({}, (err, removed) => {
+              if (err) {
+                req.flash("error", "Unknown error: Please try again.");
+                res.redirect("/upload");
+              }
+              else {
+                db.collection(database).insertMany(jsonObj, (err, doc) => {
+                  if (err) {
+                    req.flash("error", "Error: Previous list data removed, but unable to add new items. Please try again.");
+                    res.redirect("/upload");
+                  }
+                  else {
+                    console.log("success!");
+                    req.flash("success", "Success! New data uploaded");
+                    res.redirect("/upload");
+                  }
+                });
+              }
+            });
+          }
+
+          else if (opt == "addto") {
+            db.collection(database).insertMany(jsonObj, { ordered: false }, (err, doc) => {
+              if (err) {
+                if (err.result.result.ok >= 1) { // insertmany had conflicts with van_id, but some items were new
+                  req.flash("success", "Success! File uploaded.");
+                  req.flash("success", "Note: Your file contained records that were already in your database. These records were not double-added, while unique records were added successfully.");
+                  res.redirect("/upload");
+                }
+                else { // insertmany had conflicts with van_id, and none of the items were new
+                  req.flash("error", "Documents failed to upload. Please try again.");
+                  res.redirect("/upload");
+                }
+              }
+              else {
+                console.log("success!");
+                req.flash("success", "Documents added!");
+                res.redirect("/upload");
+              }
+            });
+          }
+        })
+      });
+      
+      app.post("/stripe", (req, res) => {
+
+        // Token is created using Checkout or Elements!
+        // Get the payment token ID submitted by the form:
+        const token = req.body.stripeToken; // Using Express
+
+        (async () => {
+          const charge = await stripe.charges.create({
+            amount: 999,
+            currency: 'usd',
+            description: 'Example charge',
+            source: token,
+          });
+          
+          let id = req.user._id;
+                              
+          if (charge.paid) {
+            db.collection("siawusers").updateOne({ _id: id }, { $set: { paid: true } }, (err, doc) => {
+              if (err) {
+                console.log(err)
+                req.flash("error", err);
+                res.redirect("/payment");
+              }
+              else {
+                console.log(doc);
+                req.flash("success", "Thank you for your payment. You are now free to use the Election Day platform.");
+                res.redirect("/admin");
+              }
+            });
+          }
+          
+          else {
+            req.flash("error", "Payment did not complete. Please try again.");
+            res.redirect("/payment");
+          }
+        })();
+      });
+      
+      
+      app.get("/electionresults", adminProtectedMiddleware, (req, res) => {
+        
+        let database = req.user.database;
+        let admin = req.user.admin;
+        
+        db.collection('campaigns').findOne({ database }, (err, doc) => {
+          if (err) { console.log(err); }
+          else {
+            let obj = {};
+            obj = doc;
+            res.render(process.cwd() + '/views/pug/electionresults', { obj, admin });
+          }
+        })
+      });
+      
+      
+      app.get("/precincts", adminProtectedMiddleware, (req, res) => {
+        
+        let database = req.user.database;
+        let admin = req.user.admin;
+        
+        let x = db.collection(database).aggregate([
+          { $match : { } },
+          // sorts by precinct, and gets number who voted and who haven't voted
+          { $group : { _id: "$precinct", voted: { $sum: { $cond: [ { $eq: ["$voted", "1"] }, 1, 0 ] } }, notvoted: { $sum: { $cond: [{ $eq: ["$voted", "1"] }, 0, 1 ] } } } },
+          { $sort: { _id: 1 } }
+        ], (err, cursor) => {
+          if (err) {
+            console.log(err);
+            req.flash("error", "Error: Unable to fetch data. Please try again.");
+            req.redirect("/admin");
+          }
+          else {
+            let arr;
+            cursor.toArray()
+            .then((docs) => {
+              arr = docs;
+              res.render(process.cwd() + '/views/pug/precincts', { arr, admin });
+            });
+          }
+        });
+
+      });
+      
+      app.get("/pollwatchers", adminProtectedMiddleware, (req, res) => {
+        // get pollwatcher info from database
+        let database = req.user.database;
+        let admin = req.user.admin;
+        
+        Siawuser.find({ database, admin: false },  (err, docs) => {
+          if (err) { console.log(err); }
+          else {
+            res.render(process.cwd() + "/views/pug/pollwatchers", { arr: docs, admin });
+          }
+        });
+      });
+      
+      
+      app.post("/pollwatchers", adminProtectedMiddleware, (req, res) => {
+        let admin = req.user.admin;
+        // change the precinct/phone number/email/name on a pollwatcher
+        let arr = [];     
+        res.render(process.cwd() + "/views/pug/pollwatchers", { arr, admin });
+      });
+      
+      app.get("/addpollwatcher", adminProtectedMiddleware, (req, res) => {
+        let admin = req.user.admin;
+        res.render(process.cwd() + "/views/pug/addpollwatcher", { admin });
+      });
+      
+      
+      app.post("/addpollwatcher", adminProtectedMiddleware, [
+        check("email").isEmail().withMessage("Invalid email"),
+        check("firstname").not().isEmpty().withMessage("First name must be included"),
+        check("lastname").not().isEmpty().withMessage("Last name must be included")
+        ], checkValidationResult, (req, res) => {
+        
+        let admin = req.user.admin;
+        
+        // add pollwatcher to database, add verification to database, and send email to pollwatcher
+        
+        // verification variables
+        const token = randomstring.generate();
+        
+        // pollwatcher variables
+        const email = req.body.email.toLowerCase();
+        const user_first = req.body.firstname || "";
+        const user_last = req.body.lastname || "";
+        const precinct = req.body.precinct || "";
+        
+        // campaign variables
+        const database = req.user.database;
+        const public_name = req.user.public_name;
+        const ward = req.user.ward;
+        const no_of_precincts = req.user.no_of_precincts;
+        const candidate_first = req.user.candidate_first;
+        const candidate_last = req.user.candidate_last;
+        
+        let user = new Siawuser({
+          email,
+          user_first,
+          user_last,
+          ward,
+          precinct,
+          database,
+          public_name,
+          verification_token: token,
+          admin: false,
+          paid: false,
+          authenticated: false
+        });
+        
+        
+        Siawuser.create(user, async (err, doc) => {
+          
+          if (err) {
+            req.flash("error", "User already signed up for another campaign. If user is not in your campaign, and you want them for your campaign, they must delete their current account. You can then invite them to your campaign.");
+            res.render(process.cwd() + "/views/pug/addpollwatcher", { admin, errors: req.flash("error") });
+          }
+          
+          else { // no errors
+            
+            const html = '<p>Hi ' + user_first + ',</p><p>You have been requested to join the ' + public_name + ' campaign.</p><p>Your token is ' + token + '</p><p>Use the following link to create an account and complete your registration:</p><p><a href="https://election-day3.glitch.me/pollwatcherconfirm">https://election-day3.glitch.me/pollwatcherconfirm</a></p><p>Have a pleasant day!</p>';
+            
+            
+            await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
+            
+            
+            req.flash("success", "User added. Have user check their email to authenticate their account.");
+            res.render(process.cwd() + "/views/pug/addpollwatcher", { admin, success: req.flash("success") });
+          }
+        });
+
+      });
+      
+      app.post("/deletepollwatcher", adminProtectedMiddleware, (req, res) => {
+        let id = req.body.clickedId;
+        let database = req.user.database; // <- necessary?
+        
+        Siawuser.findOneAndRemove({ _id: id }, (err, doc) => {
+          if (err) { console.log(err); }
+          else {
+            res.json({ success: "success" });
+          }
+        });
+      });
+      
+      
+      app.post("/changeprecinct/:userid", adminProtectedMiddleware, (req, res) => {
+        let precinct = req.body.precinct;
+        let id = req.params.userid;
+        
+        console.log(precinct);
+        console.log(id);
+        
+        Siawuser.findOneAndUpdate({ _id: id }, { precinct }, { new: true }, (err, doc) => {
+          if (err) {
+            console.log(err);
+            req.flash("error", "Error: Unable to change precinct. Please try again.");
+            res.redirect("/pollwatchers");
+          }
+          else {
+            doc.precinct = precinct;
+            doc.save();
+            req.flash("success", "Success! Pollwatcher precinct changed.");
+            res.redirect("/pollwatchers");
+          }
+        });
+        
+      });
+      
+      
+      app.get("/view/:precinct", adminProtectedMiddleware, (req, res) => {
         
         // convert param from string into a number
         let precinct = req.params.precinct;
@@ -801,20 +795,19 @@ module.exports = (app, db) => {
             cursor.toArray()
               .then((docs) => {
                 arr = docs;
-              res.render(process.cwd() + '/views/pug/view', { arr, admin });
+              res.render(process.cwd() + '/views/pug/view', { admin, arr });
             });
           }
         })
       });
       
-      app.get("/configure", (req, res) => {
-        
+      
+      app.get("/configure", adminProtectedMiddleware, (req, res) => {
         let admin = req.user.admin;
-        
-        res.render(process.cwd() + "/views/pug/configure", { admin: true });
+        res.render(process.cwd() + "/views/pug/configure", { admin });
       });
       
-      app.post("/addopponents", [
+      app.post("/addopponents", adminProtectedMiddleware, [
         check("opponents").custom((val) => {
           
           let len = val.split(",").length - 1;
@@ -829,7 +822,7 @@ module.exports = (app, db) => {
         ], checkValidationResult, (req, res) => {
         
         let database = req.user.database;
-        
+        let admin = req.user.admin;
         
         let opponents_string = req.body.opponents; // "Dwight D. Eisenhower, John F. Kennedy, Woodrow Wilson"
         let regex = /,\s*/g;
@@ -844,25 +837,15 @@ module.exports = (app, db) => {
         Campaign.findOneAndUpdate( { database }, { $set: { "precincts.$[elem].opponent_votes": obj } }, { "arrayFilters": [{ "elem.number": { $gte: 1 } }], "multi": true }, (err, doc) => {
           if (err) {
             console.log(err);
-            req.flash("error", "Could not update precincts at this time. Please try again.");
-            res.render(process.cwd() + "/views/pug/configure", { admin: true, errors: req.flash("error") });
+            req.flash("error", "Error: Could not update precincts at this time. Please try again.");
+            res.render(process.cwd() + "/views/pug/configure", { admin, errors: req.flash("error") });
           }
           
           else {
             req.flash("success", "Database successfully updated");
-            res.render(process.cwd() + "/views/pug/configure", { admin: true, successes: req.flash("success") });
+            res.render(process.cwd() + "/views/pug/configure", { admin, successes: req.flash("success") });
           }
-          
-          
         });
-        
-      });
-      
-      app.get("/campaigns", (req, res) => {
-        console.log("req : ", req);
-        console.log("req.body : ", req.body);
-        console.log("req.query : ", req.query);
-        res.render(process.cwd() + "/views/pug/campaigns", { arr: [] });
       });
       
       app.post("/changeprecincts", (req, res) => {
