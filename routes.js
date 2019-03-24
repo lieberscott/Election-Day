@@ -57,13 +57,47 @@ module.exports = (app, db) => {
     else {
 
       let db = client.db('freecodecamp2018');
+      
+      /*
+      /
+      /
+      / Pages in which you don't need to be signed in
+      / vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+      /
+      /
+      */
 
       app.get('/', /* mainpageMiddleware, */ (req, res) => {
         res.redirect("/login");
         
       });
       
-      app.get("/watch", (req, res) => { // pollwatcher watching their location
+      
+      
+      
+      /*
+      /
+      / ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      / Pages in which you don't need to be signed in
+      /
+      /
+      / Pollwatcher pages
+      / vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+      /
+      */
+      
+      
+      
+      
+      app.get("/choice", pollwatcherProtectedMiddleware, (req, res) => {
+        let admin = req.user.admin;
+        res.render(process.cwd() + "/views/pug/choice.pug", { admin });
+      });
+      
+      app.get("/watch", pollwatcherProtectedMiddleware, (req, res) => { // pollwatcher watching their location
+        
+        let admin = req.user.admin;
+        
         let database = req.user.database;
         let precinct = req.user.precinct.toString();
         let ward = req.user.ward.toString();
@@ -79,7 +113,7 @@ module.exports = (app, db) => {
             cursor.toArray()
             .then((docs) => {
               arr = docs;
-              res.render(process.cwd() + '/views/pug/watch', { arr });
+              res.render(process.cwd() + '/views/pug/watch', { admin, arr });
             })
             .catch((error) => {
               console.log(error);
@@ -90,7 +124,25 @@ module.exports = (app, db) => {
         });
       });
       
-      app.get("/upload", (req, res) => {
+      
+      
+      
+      
+      /*
+      /
+      / ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      / Pollwatcher pages
+      /
+      /
+      / Admin pages
+      / vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+      /
+      */
+      
+      
+      
+      
+      app.get("/upload", adminProtectedMiddleware, (req, res) => {
         let admin = req.user.admin;
         
         const directory = 'public/uploads';
@@ -114,19 +166,18 @@ module.exports = (app, db) => {
         
       });
       
-      app.post("/addfile", (req, res) => {
+      app.post("/addfile", adminProtectedMiddleware, (req, res) => {
+        let admin = req.user.admin;
         upload(req, res, (err) => {
           if (err) {
             console.log(err);
             req.flash("error", err);
-            res.render(process.cwd() + "/views/pug/upload.pug", { errors: req.flash("error") });
+            res.render(process.cwd() + "/views/pug/upload.pug", { admin, errors: req.flash("error") });
           }
           else {
             if (req.file == undefined) {
               req.flash("error", "No file selected.");
               res.redirect("/upload");
-              // res.render(process.cwd() + "/views/pug/upload.pug", { errors: req.flash("error") });
-              // res.render(process.cwd() + "/views/pug/upload.pug", { msg: "Error: No file selected" });
             }
             else {
               const csvFilePath = "public/uploads/" + req.file.filename;
@@ -135,75 +186,66 @@ module.exports = (app, db) => {
               .fromFile(csvFilePath)
               .then((jsonObj)=> {
                 let obj = jsonObj.slice(0, 10);
-                res.render(process.cwd() + "/views/pug/upload.pug", { file: obj });
+                res.render(process.cwd() + "/views/pug/upload.pug", { admin, file: obj });
               });
-
-              // res.render(process.cwd() + "/views/pug/choice.pug", { msg: "File uploaded", file: `uploads/${req.file.filename}` });
             }
           }
         });
       });
       
-      app.post("/addtomongo", (req, res) => {
-        
-        if (req.user) {
-          let opt = req.body.radios; // "addto" or "override"
-          let database = req.user.database;
+      app.post("/addtomongo", adminProtectedMiddleware, (req, res) => {
 
-          const csvFilePath = "public/uploads/" + filename;
-          csv()
-          .fromFile(csvFilePath)
-          .then((jsonObj)=> {
+        let opt = req.body.radios; // "addto" or "override"
+        let database = req.user.database;
 
-            if (opt == "override") {
-              db.collection(database).remove({}, (err, removed) => {
-                if (err) {
-                  req.flash("error", "Unknown error: Please try again.");
-                  res.redirect("/upload");
-                }
-                else {
-                  db.collection(database).insertMany(jsonObj, (err, doc) => {
-                    if (err) {
-                      req.flash("error", "Error: Previous list data removed, but unable to add new items. Please try again.");
-                      res.redirect("/upload");
-                    }
-                    else {
-                      console.log("success!");
-                      req.flash("success", "Success! New data uploaded");
-                      res.redirect("/upload");
-                    }
-                  });
-                }
-              });
-            }
+        const csvFilePath = "public/uploads/" + filename;
+        csv()
+        .fromFile(csvFilePath)
+        .then((jsonObj)=> {
 
-            else if (opt == "addto") {
-              db.collection(database).insertMany(jsonObj, { ordered: false }, (err, doc) => {
-                if (err) {
-                  if (err.result.result.ok >= 1) { // insertmany had conflicts with van_id, but some items were new
-                    req.flash("success", "Success! File uploaded.");
-                    req.flash("success", "Note: Your file contained records that were already in your database. These records were not double-added, while unique records were added successfully.");
+          if (opt == "override") {
+            db.collection(database).remove({}, (err, removed) => {
+              if (err) {
+                req.flash("error", "Unknown error: Please try again.");
+                res.redirect("/upload");
+              }
+              else {
+                db.collection(database).insertMany(jsonObj, (err, doc) => {
+                  if (err) {
+                    req.flash("error", "Error: Previous list data removed, but unable to add new items. Please try again.");
                     res.redirect("/upload");
                   }
-                  else { // insertmany had conflicts with van_id, and none of the items were new
-                    req.flash("error", "Documents failed to upload. Please try again.");
+                  else {
+                    console.log("success!");
+                    req.flash("success", "Success! New data uploaded");
                     res.redirect("/upload");
                   }
-                }
-                else {
-                  console.log("success!");
-                  req.flash("success", "Documents added!");
+                });
+              }
+            });
+          }
+
+          else if (opt == "addto") {
+            db.collection(database).insertMany(jsonObj, { ordered: false }, (err, doc) => {
+              if (err) {
+                if (err.result.result.ok >= 1) { // insertmany had conflicts with van_id, but some items were new
+                  req.flash("success", "Success! File uploaded.");
+                  req.flash("success", "Note: Your file contained records that were already in your database. These records were not double-added, while unique records were added successfully.");
                   res.redirect("/upload");
                 }
-              });
-            }
-          })
-        }
-        
-        else {
-          req.flash("error", "You must be logged in to access that route");
-          res.redirect("/login");
-        }
+                else { // insertmany had conflicts with van_id, and none of the items were new
+                  req.flash("error", "Documents failed to upload. Please try again.");
+                  res.redirect("/upload");
+                }
+              }
+              else {
+                console.log("success!");
+                req.flash("success", "Documents added!");
+                res.redirect("/upload");
+              }
+            });
+          }
+        })
       });
       
       app.post("/stripe", (req, res) => {
@@ -271,7 +313,7 @@ module.exports = (app, db) => {
       });
 
 
-      app.get('/login', /* loginpageMiddleware, */ (req, res, next) => {
+      app.get('/login', loginpageMiddleware, (req, res) => {
         res.render(process.cwd() + "/views/pug/login.pug");
       });
 
@@ -286,20 +328,16 @@ module.exports = (app, db) => {
       
       app.post('/login', passport.authenticate("local", { failureRedirect: "/login", failureFlash: true }), (req, res) => {
 
-        if (req.user.admin && req.user.paid) {
+        if (req.user.admin && req.user.paid && req.user.authenticated) {
           res.redirect('/admin');
         }
-        else if (req.user.admin && !req.user.paid) {
+        else if (req.user.admin && (!req.user.paid || !req.user.authenticated)) {
           res.redirect('/payment');
         }
         
         else { // req.user.admin = false (pollwatcher)
           res.redirect("/choice");
         }
-      });
-      
-      app.get("/choice", /* mainpageMiddleware, */ (req, res) => {
-        res.render(process.cwd() + "/views/pug/choice.pug");
       });
       
       app.get("/report", /* mainpageMiddleware, */ (req, res) => {
@@ -547,14 +585,14 @@ module.exports = (app, db) => {
           }
         });
       });      
-      app.get("/payment", /* paymentMiddleware, */ (req, res) => {
+      app.get("/payment", adminMiddleware, (req, res) => {
         let admin = req.user.admin;
         let paid = req.user.paid;
         let authorized = req.user.authorized;
         res.render(process.cwd() + '/views/pug/payment', { admin, paid, authorized });
       });
       
-      app.get("/admin", adminMiddleware, (req, res) => {
+      app.get("/admin", adminProtectedMiddleware, (req, res) => {
         let admin = req.user.admin;
         res.render(process.cwd() + '/views/pug/admin', { admin });
       });
@@ -1150,14 +1188,12 @@ module.exports = (app, db) => {
               // stream from the cursor (from Mongo), then stringify using jsonstream, then pipe to json2csv, then pipe to the output file
               let stream = cursor.stream().pipe(jsonstream.stringify()).pipe(json2csv).pipe(output);
               // download locally when piping is finished
-              console.log("prestream");
               stream.on("finish", () => {
                 res.download(directory + "/" + file, (download_err) => {
                   // delete the file
                   fs.unlink(path.join(directory, file));
                 });
               });
-              console.log("poststream");
               
             } catch (stream_err) {
               console.error(stream_err);
@@ -1167,6 +1203,12 @@ module.exports = (app, db) => {
           }
         
         });
+      });
+      
+      app.get("/pollwatcherdark", pollwatcherMiddleware, (req, res) => {
+        let authenticated = req.user.authenticated;
+        let admin = req.user.admin;
+        res.render(process.cwd() + "/views/pug/pollwatcherdark", { admin, authenticated });
       });
       
       
@@ -1185,30 +1227,20 @@ module.exports = (app, db) => {
 
 // only for /login page (if person is logged in, it will redirect to main page rather than render login page)
 const loginpageMiddleware = (req, res, next) => {
-  if (req.isAuthenticated()) {
-    res.redirect("/");
-  }
-  else {
-    next();
-  }
-}
-
-// only for "/" page (if person is not logged in, it will redirect to login page rather than render main page)
-const mainpageMiddleware = (req, res, next) => {
-  if (req.user && req.user.email == "admin") {
+  if (req.isAuthenticated() && req.user.admin) {
     res.redirect("/admin");
   }
   
-  else if (req.isAuthenticated()) {
-    next();
+  else if (req.isAuthenticated() && !req.user.admin) {
+    res.redirect("/choice");
   }
   else {
-    res.redirect("/login");
+    next();
   }
 }
 
-// if person is  logged in, it will redirect to payment page rather than render main page
-const adminMiddleware = (req, res, next) => {
+// middleware for admin pages
+const adminProtectedMiddleware = (req, res, next) => {
   
   if (req.user) {
     if (req.user.paid && req.user.authenticated) {
@@ -1222,6 +1254,44 @@ const adminMiddleware = (req, res, next) => {
     res.redirect("/login");
   }
 }
+
+// middleware for pollwatcher pages
+const pollwatcherProtectedMiddleware = (req, res, next) => {
+  
+  if (req.user) {
+    if (req.user.authenticated) {
+      next();
+    }
+    else {
+      res.redirect("/pollwatcherdark");
+    }
+  }
+  else {
+    res.redirect("/login");
+  }
+}
+
+const pollwatcherMiddleware = (req, res, next) => { // for /pollwatcherdark
+  if (req.isAuthenticated() && !req.user.admin) {
+    next();
+  }
+  
+  else {
+    res.redirect("/logout");
+  }
+  
+};
+
+const adminMiddleware = (req, res, next) => { // for /payment
+  if (req.isAuthenticated() && req.user.admin) {
+    next();
+  }
+  
+  else {
+    res.redirect("/logout");
+  }
+  
+};
 
 const checkValidationResult = (req, res, next) => {
   const result = validationResult(req);

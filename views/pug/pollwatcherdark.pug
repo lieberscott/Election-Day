@@ -1,0 +1,41 @@
+extends layout.pug
+
+block extralink
+  link(rel="stylesheet" href="/choicestyle.css")
+
+block extrascript
+  script(src="https://code.jquery.com/jquery-3.3.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous")
+  script(src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous")
+  script(src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous")
+  script(src="/client.js" defer)
+
+block main
+  div.login-page
+    if errors
+      for error, i in errors
+        div(class="alert alert-danger") #{error.msg}
+    h3 Welcome to the campaign!
+    div
+      div.row
+        div.col
+          a.btn.btn-warning.btn-block(href="/watch") Watch the polls
+      div.row
+        div.col
+          a.btn.btn-dark.btn-block(href="/report") Report Voter Numbers
+
+      div.popup
+        div.popup-inner
+          if successes.length > 0
+            for success in successes
+              div.alert.alert-success #{ success }
+          else if !authorized
+            div.alert.alert-success Verify your account to access the full site.
+          form(action="/resendverification" method="POST")
+            button.btn.btn-outline-secondary.align-right(type="submit") Resend Verification
+          button.btn.btn-primary.align-right
+            a(href="/logout") Logout
+          form(onsubmit="return confirm('Are you sure you want to delete your account?')" action="/deleteaccount" method="POST")
+            button.btn.btn-danger.align-right(type="submit") Delete account
+          p If you still see this prompt after verifying your account
+          a(href="/choice")
+            button.btn.btn-success Click Here
