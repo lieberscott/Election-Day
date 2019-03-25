@@ -40,13 +40,10 @@ block main
     let local_data =!{JSON.stringify(obj)}
     // { candiddate: total votes, candidate: total votes, etc. }
     let candidate_totals = {};
-    console.log(local_data);
     let precincts = local_data.precincts; // array of precincts
     let precincts_len = precincts.length; // number of precincts
     let candidates = Object.keys(precincts[0].candidate_votes); // ["Matt Martin", "Michael Negron", etc.]
-    console.log("candidates : ", candidates);
     let candidates_len = candidates.length; // number of candidates
-    console.log(candidates_len);
     let html1 = '<div class="row"><div class="col-1">Totals</div>';
     let html2 = '<div class="row"><div class="col-1"></div>';
     
@@ -54,7 +51,6 @@ block main
       let candidate = candidates[i];
       candidate_totals[candidate] = 0; // { "Matt Martin": 0, "Michael Negron": 0, etc. }
     }
-    console.log(candidate_totals);
     
     let ward_votes = 0;
     for (let i = 0; i < precincts_len; i++) {
@@ -67,7 +63,6 @@ block main
     
     for (let i = 0; i < candidates_len; i++) {
       let candidate = candidates[i];
-      console.log(candidate_totals[candidate]);
       html1 += '<div class="col-1">' + candidate_totals[candidate] + '</div>';
       let perc = Math.round(candidate_totals[candidate] / ward_votes * 1000) / 10 || 0;
       html2 += '<div class="col-1">' + perc + '%</div>';

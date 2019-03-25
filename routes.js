@@ -313,7 +313,7 @@ module.exports = (app, db) => {
           if (err) {
             console.log(err);
             req.flash("error", err);
-            return res.render(process.cwd() + "/views/pug/requestreset", { errors: req.flash("error") });
+            return res.redirect("/requestreset");
           }
 
           else { // User found
@@ -328,7 +328,7 @@ module.exports = (app, db) => {
                 await sendEmail("scott@voterturnout.com", email, "Your password reset request", html);
 
                 req.flash("success", "Success! An email has been sent to the email address you provided. Click the link to reset your password.");
-                res.redirect("/admin");
+                res.redirect("/requestreset");
               }
               catch (email_err) {
                 console.log(email_err);
@@ -485,7 +485,7 @@ module.exports = (app, db) => {
 
                             let admin = req.user.admin;
                             req.flash("success", "Success! You are registered and authenticated.");
-                            res.redirect("/admin", { admin });
+                            res.redirect("/admin");
                           }
 
                         });
@@ -698,10 +698,9 @@ module.exports = (app, db) => {
         });
       });
       
-      app.get("/pollwatcherdark", pollwatcherProtectedMiddleware, (req, res) => {
-        let authenticated = req.user.authenticated;
+      app.get("/pollwatcherconfigure", pollwatcherProtectedMiddleware, (req, res) => {
         let admin = req.user.admin;
-        res.render(process.cwd() + "/views/pug/pollwatcherdark", { admin, authenticated });
+        res.render(process.cwd() + "/views/pug/pollwatcherconfigure", { admin });
       });
       
       
@@ -967,6 +966,7 @@ module.exports = (app, db) => {
         
         // pollwatcher variables
         const email = req.body.email.toLowerCase();
+        const phone = req.body.phone || "";
         const user_first = req.body.firstname || "";
         const user_last = req.body.lastname || "";
         const precinct = req.body.precinct || "";
@@ -981,6 +981,7 @@ module.exports = (app, db) => {
         
         let user = new Siawuser({
           email,
+          phone,
           user_first,
           user_last,
           ward,
@@ -1007,7 +1008,7 @@ module.exports = (app, db) => {
             
             try {
               await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
-              req.flash("success", "User added. Have user check their email to authenticate their account.");
+              req.flash("success", "User added! Please have user authenticate their account and set their password.");
               res.render(process.cwd() + "/views/pug/addpollwatcher", { admin, successes: req.flash("success") });
             }
             catch (email_err) {
@@ -1059,7 +1060,33 @@ module.exports = (app, db) => {
             .catch((error) => {
               console.log(error);
               req.flash("error", "Error: Unable to change precinct. Please try again.");
-              res.redirect("/configure");
+              res.redirect("/pollwatchers");
+            });
+          }
+        });
+      });
+      
+      app.post("/changephone/:userid", adminProtectedMiddleware, (req, res) => {
+        let phone = req.body.phone;
+        let id = req.params.userid;
+        
+        Siawuser.findOneAndUpdate({ _id: id }, { phone }, { new: true }, (err, doc) => {
+          if (err) {
+            console.log(err);
+            req.flash("error", "Error: Unable to change phone. Please try again.");
+            res.redirect("/pollwatchers");
+          }
+          else {
+            doc.phone = phone;
+            doc.save()
+            .then(() => {
+              req.flash("success", "Success! Pollwatcher phone changed.");
+              res.redirect("/pollwatchers");
+            })
+            .catch((error) => {
+              console.log(error);
+              req.flash("error", "Error: Unable to change phone. Please try again.");
+              res.redirect("/pollwatchers");
             });
           }
         });
@@ -1195,9 +1222,9 @@ module.exports = (app, db) => {
             });
           }
 
-          else { // difference is 0 (they entered same number as before)
-            req.flash("error", "Same number of precincts as already on file.");
-            res.render(process.cwd() + "/views/pug/configure", { errors: req.flash("error") });
+          else { // difference is 0 (they entered same number as before), or they entered a non-number
+            req.flash("error", "Error: Same number of precincts as already on file, or invalid entry.");
+            res.redirect("/configure");
           }
         })
         .catch((err) => {
@@ -1337,29 +1364,13 @@ const adminProtectedMiddleware = (req, res, next) => {
 // middleware for pollwatcher pages
 const pollwatcherProtectedMiddleware = (req, res, next) => {
   
-  if (req.user) {
-    if (req.user.authenticated) {
-      next();
-    }
-    else {
-      res.redirect("/pollwatcherdark");
-    }
+  if (req.isAuthenticated()) {
+    next();
   }
   else {
     res.redirect("/login");
   }
 }
-
-const pollwatcherMiddleware = (req, res, next) => { // for /pollwatcherdark
-  if (req.isAuthenticated() && !req.user.admin) {
-    next();
-  }
-  
-  else {
-    res.redirect("/logout");
-  }
-  
-};
 
 const adminMiddleware = (req, res, next) => { // for /payment
   if (req.isAuthenticated() && req.user.admin) {

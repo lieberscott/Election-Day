@@ -34,7 +34,7 @@ html
             li.nav-item.hide
               a.nav-link(href="/upload") Upload New List
             li.nav-item.hide
-              a.nav-link(href="/") Export Current List
+              a.nav-link(href="/configure#export") Export Current List
             li.nav-item.hide
               a.nav-link(href="/pollwatchers") View Pollwatchers
             li.nav-item.hide
@@ -55,9 +55,11 @@ html
               a.nav-link(href="/choice") Home
                 span.sr-only (current)
             li.nav-item
-              a.nav-link(href="/") Voter List
+              a.nav-link(href="/watch") Voter List
             li.nav-item
               a.nav-link(href="/report") Report Numbers
+            li.nav-item.hide
+              a.nav-link(href="/pollwatcherconfigure") Configure Your Account
             li.nav-item
               a.nav-link(href="/logout") Logout
         
@@ -67,47 +69,70 @@ html
         nav.col-2.d-none.d-md-block.bg-light.sidebar
           div.sidebar-sticky
             ul.nav.flex-column
-              li.nav-item
-                a.nav-link.active(href="/admin")
-                  i.fas.fa-home
-                  span   Dashboard
-                    span.sr-only (current)
-              li.nav-item
-                a.nav-link(href="/electionresults")
-                  i.far.fa-chart-bar
-                  span   Election Results
-              li.nav-item
-                a.nav-link(href="/precincts")
-                  i.fas.fa-file
-                  span   View Current List
-              li.nav-item
-                a.nav-link(href="/upload")
-                  i.fas.fa-upload
-                  span   Upload A New List
-              li.nav-item
-                a.nav-link(href="#")
-                  i.fas.fa-file-export
-                  span   Export Current List
-              li.nav-item
-                a.nav-link(href="/pollwatchers")
-                  i.fas.fa-glasses
-                  span   View Pollwatchers
-              li.nav-item
-                a.nav-link(href="/addpollwatcher")
-                  i.fas.fa-plus
-                  span   Add Pollwatcher
-              li.nav-item
-                a.nav-link(href="/configure")
-                  i.fas.fa-cog
-                  span   Configure Your Campaign
-              li.nav-item
-                a.nav-link(href="/contact")
-                  i.fas.fa-envelope
-                  span   Contact Us
-              li.nav-item
-                a.nav-link(href="/logout")
-                  i.fas.fa-sign-out-alt
-                  span   Logout
+              if admin
+                li.nav-item
+                  a.nav-link.active(href="/admin")
+                    i.fas.fa-home
+                    span   Dashboard
+                      span.sr-only (current)
+                li.nav-item
+                  a.nav-link(href="/electionresults")
+                    i.far.fa-chart-bar
+                    span   Election Results
+                li.nav-item
+                  a.nav-link(href="/precincts")
+                    i.fas.fa-file
+                    span   View Current List
+                li.nav-item
+                  a.nav-link(href="/upload")
+                    i.fas.fa-upload
+                    span   Upload A New List
+                li.nav-item
+                  a.nav-link(href="/configure#export")
+                    i.fas.fa-file-export
+                    span   Export Current List
+                li.nav-item
+                  a.nav-link(href="/pollwatchers")
+                    i.fas.fa-glasses
+                    span   View Pollwatchers
+                li.nav-item
+                  a.nav-link(href="/addpollwatcher")
+                    i.fas.fa-plus
+                    span   Add Pollwatcher
+                li.nav-item
+                  a.nav-link(href="/configure")
+                    i.fas.fa-cog
+                    span   Configure Your Campaign
+                li.nav-item
+                  a.nav-link(href="/contact")
+                    i.fas.fa-envelope
+                    span   Contact Us
+                li.nav-item
+                  a.nav-link(href="/logout")
+                    i.fas.fa-sign-out-alt
+                    span   Logout
+              else
+                li.nav-item
+                  a.nav-link(href="/choice")
+                    i.fas.fa-home
+                    span   Dashboard
+                li.nav-item
+                  a.nav-link(href="/watch")
+                    i.fas.fa-glasses
+                    span   Voter List
+                li.nav-item
+                  a.nav-link(href="/report")
+                    i.fas.fa-chart-bar
+                    span   Report Numbers
+                li.nav-item
+                  a.nav-link(href="/pollwatcherconfigure")
+                    i.fas.fa-cog
+                    span   Configure Your Account
+                li.nav-item
+                  a.nav-link(href="/logout")
+                    i.fas.fa-sign-out-alt
+                    span   Logout
+              
 
       div.col-10.ml-sm-auto.px-4
         // != messages('message', locals)

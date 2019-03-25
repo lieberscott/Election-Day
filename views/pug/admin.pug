@@ -1,8 +1,5 @@
 extends layout.pug
 
-block extralink
-  link(rel="stylesheet" href="/style.css")
-
 block extrascript
   script(src="https://code.jquery.com/jquery-3.3.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous")
   script(src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous")
@@ -15,7 +12,7 @@ block main
     a(href="/howto#configure") here
     | .
   p To learn how to use this app, click 
-    a(href="/howto#use") here
+    a(href="/howto") here
     | .
   
   div.row
@@ -23,23 +20,22 @@ block main
       div.card
         div.card-body
           h5.card-title Supporter Lists
-          p.card-text Upload a list of supporters you want to turn out. Then you can watch the polls for them to show up, call them directly, or go to their door to get them to the polls. Once they've voted, have your pollwatcher ex them out, and focus on the rest of your list.
-          a.btn.btn-primary(href="#") Learn more
+          p.card-text Upload a list of supporters you want to turn out. Then you can deploy pollwatchers to watch the polls for your supporters to show up, call them directly, or go to their door to get them to the polls. Once they've voted, have your pollwatcher X them out, and focus on the rest of your list.
+          a.btn.btn-primary(href="/howto") Learn more
         ul.list-group.list-group-flush
           a(href="/upload")
             li.list-group-item Upload a new list
-          a(href="#")
+          a(href="/precincts")
             li.list-group-item View current list
-          a(href="#")
+          a(href="/configure#export")
             li.list-group-item Export current list for Votebuilder
-              button Why?
           
     div.col-md-6
       div.card
         div.card-body
           h5.card-title Voter Turnout
           p.card-text Have your pollwatchers report total voters throughout the day directly through the app, so you know where there's a lot of foot traffic and therefore where to deploy palm card distributors. Then at the end of the day, have your pollwatchers report the votes for each candidate at their polling location directly through the app so you have the information instantly.
-          a.btn.btn-primary(href="#") Learn more
+          a.btn.btn-primary(href="/howto") Learn more
         ul.list-group.list-group-flush
           a(href="#")
             li.list-group-item View list of total votes by precicnt
@@ -53,7 +49,7 @@ block main
         div.card-body
           h5.card-title Your pollwatchers
           p.card-text Grant access, assign precincts, and view pollwatcher information
-          a.btn.btn-primary(href="#") Learn more
+          a.btn.btn-primary(href="/howto") Learn more
         ul.list-group.list-group-flush
           a(href="/pollwatchers")
             li.list-group-item View pollwatchers

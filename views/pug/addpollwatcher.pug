@@ -14,6 +14,10 @@ block main
       div.col
         label(for="email") Email*
         input#email.form-control(name="email" type="email" aria-describedby="emailHelp" placeholder="Enter email")
+      div.col
+        label(for="phone") Phone
+        input#phone.form-control(name="phone" type="text" aria-describedby="phoneHelp" placeholder="Enter phone")
+        small#phonehelp.form-text.text-muted You can change this later
     div.row
       div.col
         label(for="firstname") First name*
@@ -24,5 +28,5 @@ block main
       div.col
         label(for="precinct") Precinct
         input#precinct.form-control(name="precinct" type="text" placeholder="Precinct")
-        small#precincthelp.form-text.text-muted You can add this later
+        small#precincthelp.form-text.text-muted You can change this later
     button.btn.btn-primary(type="submit") Submit

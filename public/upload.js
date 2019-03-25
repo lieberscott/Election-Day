@@ -5,9 +5,7 @@ $(document).ready(() => {
   });
   
   let arrows = $(".fa-arrow-down");
-  
-  console.log(arrows);
-  
+    
   const len = arrows.length;
   let count = 0;
   

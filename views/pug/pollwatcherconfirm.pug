@@ -14,7 +14,6 @@ html(lang="en")
   body
     div.container.container-fluid
       div.login-page
-        != messages('messages', local)
         if errors
           for error, i in errors
             div(class="alert alert-danger") #{error.msg}
@@ -23,8 +22,6 @@ html(lang="en")
           form.login-form(method="POST" action="/pollwatcherconfirm")
             input.form-control(name="token" type="text" placeholder="Enter token")
             input.form-control(name="email" type="text" placeholder="Enter email")
-            input.form-control(name="password" type="password" placeholder="Enter password")
+            input.form-control(name="password" type="password" placeholder="Set password")
             input.form-control(name="confirmpassword" type="password" placeholder="Confirm password")
             button(type="submit") Confirm registration
-            p.message Not registered? 
-              a(href="/register") Create an account

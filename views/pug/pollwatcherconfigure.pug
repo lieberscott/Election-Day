@@ -1,0 +1,18 @@
+extends layout.pug
+
+block extralink
+  link(rel="stylesheet" href="/style.css")
+  
+block extrascript
+  script(src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous")
+  script(src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous")
+
+block main
+  div.login-page
+  h1 User Configureation
+  p To change your password, click the button below. You will receive an email with a link to change your password.
+  a(href="/requestreset" target="_blank")
+    button.btn.btn-primary Request password reset
+  h5 Danger Zone: Delete account
+  form(action="/deleteaccount" method="POST" onsubmit="return confirm('Are you sure you want to delete your account? This can not be undone.')")
+    button.btn.btn-danger Delete account

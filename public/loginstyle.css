@@ -1,11 +1,5 @@
 @import url(https://fonts.googleapis.com/css?family=Roboto:300);
 
-/* form {
-  border: 1px solid black;
-  border-radius: 3px;
-  padding: 15px;
-} */
-
 .alert-error {
   color: #a94442;
   background-color: #f2dede;
@@ -78,7 +72,7 @@
 }
 
 .form .message {
-  margin: 15px 0 0;
+  margin: 15px 0 -14px;
   color: #b3b3b3;
   font-size: 12px;
 }
@@ -104,14 +98,3 @@
   margin: 50px auto;
   text-align: center;
 }
-
-/* body {
-  background: #E8E8E8; /* fallback for old browsers */ /*
-  background: -webkit-linear-gradient(right, 	#E8E8E8, 	#E8E8E8);
-  background: -moz-linear-gradient(right, #E8E8E8, #E8E8E8);
-  background: -o-linear-gradient(right, #E8E8E8, #E8E8E8);
-  background: linear-gradient(to left, 	#E8E8E8, 	#E8E8E8);
-  font-family: "Roboto", sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;      
-} */

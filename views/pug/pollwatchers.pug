@@ -17,28 +17,29 @@ block main
     div.col-1 First name
     div.col-1 Last name
     div.col-1 Phone
-    div.col-2 Email
-    div.col-1 Auth?
-    div.col-1 Precinct Assigned
-    div.col-1 Change precinct
+    div.col-2 Change phone
+    div.col-2 Precinct Assigned
+    div.col-3 Change precinct
 
   hr
   each item, i in arr
     div(id="section" + (i + 1))
       div.font-weight-bold
         button.far.fa-times-circle(id=item._id)
-      - let index = item.current_index /* this is the index for the campaigns array */
-      - console.log("campaigns : ", item.campaigns)
       div.row
         div.col-1=item.user_first
         div.col-1=item.user_last
         div.col-1=item.phone
-        div#email.col-2=item.email
-        div.col-1=(item.authenitcated ? "Yes" : "No")
+        div.col-3
+          form(action="/changephone/"+(item._id) method="POST")
+            div.input-group
+              input.form-control(name="phone" type="text" placeholder="Change")
+              span.input-group-btn
+                button.btn.btn-primary(type="submit") Change
+      
         div.col-1=item.precinct
         div.col-3
           form(action="/changeprecinct/"+(item._id) method="POST")
-            - console.log(item._id);
             div.input-group
               input.form-control(name="precinct" type="text" placeholder="Change")
               span.input-group-btn

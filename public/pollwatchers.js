@@ -33,22 +33,17 @@ $(document).on("click", ".fa-times-circle", (e) => {
 
   // STEP 1: HIDE the element (so user can undo the "deletion"),
   let clickedId = e.target.id;
-  console.log(e.target);
   let sectionToHide = $("#" + clickedId).parentsUntil(".col-10");
-  console.log(sectionToHide);
   sectionToHide.hide();
 
   sectionToHide.after('<button class="undo" id="undo' + undoCounter + '" style="display: block;">Undo deletion</button>');
   undoCounter++;
 
-  console.log("first num: ", num);
-  console.log("first x : ", x);
   x = setTimeout(() => {
     
     // not sure why, but this has to be called twice to work
     
     let a = $("#undo" + (undoCounter - 1));
-    console.log(a);
     $("#undo" + (undoCounter - 1)).remove();
     $("#undo" + (undoCounter - 1)).remove();
 
