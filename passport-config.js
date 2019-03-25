@@ -36,17 +36,13 @@ module.exports = (passport) => {
   }));
   
   passport.serializeUser((user, done) => {
-    console.log("serializeUser called");
-    console.log(user);
     done(null, user._id)
   });
   
   passport.deserializeUser((id, done) => {
-    console.log("deserialize user called");
     Siawuser.findById(id, (err, user) => {
       done(err, user);
     });
   });
-  
-  
+
 };

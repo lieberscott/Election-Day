@@ -52,7 +52,7 @@ let filename;
 module.exports = (app, db) => {
   
   mongo.connect(process.env.DATABASE, { useNewUrlParser: true }, (err, client) => {
-    if(err) { console.log('Database error: ' + err) }
+    if(err) { console.log('Database error: ' + err); }
     
     else {
 
@@ -245,7 +245,8 @@ module.exports = (app, db) => {
                     })
                     .catch((catch_err) => {
                       console.log(catch_err);
-                      res.render("/register", { errors: [{ msg: "There was an error with your registration. That's all we know right now. Please contact support for help." }] });
+                      req.flash("error", "There was an error with your registration. Please contact support for help.");
+                      res.render("/register", { errors: req.flash("error") });
                     });
                   };
                 })
@@ -260,7 +261,6 @@ module.exports = (app, db) => {
         
         let clicked_token = req.params.token; // user "entered" token
         let email = req.params.email;
-        console.log("email: ", email);
         
         Siawuser.findOne({ email }, (err, user) => {
           if (err) {
@@ -271,7 +271,6 @@ module.exports = (app, db) => {
             
             if (user) {
               let verification_token = user.verification_token;
-              console.log("verification token : ", verification_token);
 
                 if (verification_token == clicked_token) { // token matches
                   user.authenticated = true;
@@ -299,15 +298,10 @@ module.exports = (app, db) => {
       });
       
       app.post("/requestreset", (req, res) => {
-        console.log("requestreset");
         let token = randomstring.generate();
-
         let email = req.body.email.toLowerCase();
-
         let date = Date.now() + 3600000;
         
-        console.log("token : ", token);
-
         Siawuser.findOne({ email }, async (err, user) => {
           if (err) {
             console.log(err);
@@ -316,7 +310,6 @@ module.exports = (app, db) => {
           }
 
           else { // User found
-            console.log("hello inside user");
             user.resetPassword = token;
             user.save();
 
@@ -361,10 +354,8 @@ module.exports = (app, db) => {
         })
         ], checkValidationResult, (req, res) => {
         
-        console.log("resetpassword");
         let token = req.params.token;
         let pass = req.body.password;
-        console.log("token : ", token);
         
         Siawuser.findOne({ resetPassword: token }, (err, user) => {
           if (err) {
@@ -377,14 +368,16 @@ module.exports = (app, db) => {
             bcrypt.genSalt(10, (err, salt) => {
               if (err) {
                 console.log(err);
-                res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Registration error: Please try again" }] });
+                req.flash("error", "Registration error. Please try again.");
+                res.render(process.cwd() + "/views/pug/register", { errors: req.flash("error") });
               }
 
               else { // SECOND ELSE: PASSWORD SALTED
                 bcrypt.hash(pass, salt, (error, hash) => {
                   if (error) {
                     console.log(error);
-                    res.render(process.cwd() + "/views/pug/register", { errors: [{ msg: "Registration error: Please try again" }] });
+                    req.flash("error", "Registration error: Please try again.");
+                    res.render(process.cwd() + "/views/pug/register", { errors: req.flash("error") });
                   }
                   else { // THIRD ELSE: PASSWORD HASHED
                     user.password = hash;
@@ -434,14 +427,16 @@ module.exports = (app, db) => {
             bcrypt.genSalt(10, (err, salt) => {
               if (err) {
                 console.log(err);
-                res.render(process.cwd() + "/views/pug/pollwatcherconfirm", { errors: [{ msg: "Registration error: Please try again" }] });
+                req.flash("error", "Registration error: Please try again.");
+                res.render(process.cwd() + "/views/pug/pollwatcherconfirm", { errors: req.flash("error") });
               }
 
               else { // SECOND ELSE: PASSWORD SALTED
                 bcrypt.hash(pass, salt, (error, hash) => {
                   if (error) {
                     console.log(error);
-                    res.render(process.cwd() + "/views/pug/pollwatcherconfirm", { errors: [{ msg: "Registration error: Please try again" }] });
+                    req.flash("error", "Registration error: Please try again.");
+                    res.render(process.cwd() + "/views/pug/pollwatcherconfirm", { errors: req.flash("error") });
                   }
                   else { // THIRD ELSE: PASSWORD HASHED
                     
@@ -578,9 +573,13 @@ module.exports = (app, db) => {
         
         
         db.collection(database).findOneAndUpdate({ _id: id }, { $set: { voted : "1", enteredBy: pollwatcher, date } }, (err, doc) => {
-          if (err) { console.log(err) }
+          if (err) {
+            console.log(err);
+            req.flash("error", "Unable to count voter. Please try again.");
+            req.redirect("/choice");
+          }
           else {
-            console.log("success : ", err);
+            console.log("success");
           }
         })
       });
@@ -622,7 +621,6 @@ module.exports = (app, db) => {
           opponent_votes[candidate] = num;
         }
         
-        
         let tempdate= new Date().toString().split("GMT+0000 (UTC)")[0].split(" 2019");
         let d = tempdate[1].split(":");
         let time = Number(d[0]);
@@ -638,9 +636,7 @@ module.exports = (app, db) => {
         let user_last = req.user.user_last;
         
         let last_updated = date + " by " + user_first + " " + user_last;
-        
-        console.log(last_updated);
-        
+                
         // update database
         Campaign.findOne({ database })
         .exec()
@@ -653,6 +649,8 @@ module.exports = (app, db) => {
         })
         .catch((err) => {
           console.log(err);
+          req.flash("error", "Unable to report numbers. Please try again.");
+          res.redirect("/choice");
         });
       });
       
@@ -763,7 +761,6 @@ module.exports = (app, db) => {
                     res.redirect("/upload");
                   }
                   else {
-                    console.log("success!");
                     req.flash("success", "Success! New data uploaded");
                     res.redirect("/upload");
                   }
@@ -786,8 +783,7 @@ module.exports = (app, db) => {
                 }
               }
               else {
-                console.log("success!");
-                req.flash("success", "Documents added!");
+                req.flash("success", "Success! Documents added.");
                 res.redirect("/upload");
               }
             });
@@ -819,7 +815,6 @@ module.exports = (app, db) => {
                 res.redirect("/payment");
               }
               else {
-                console.log(doc);
                 req.flash("success", "Thank you for your payment. You are now free to use the Election Day platform.");
                 res.redirect("/admin");
               }
@@ -840,7 +835,11 @@ module.exports = (app, db) => {
         let admin = req.user.admin;
         
         db.collection('campaigns').findOne({ database }, (err, doc) => {
-          if (err) { console.log(err); }
+          if (err) {
+            console.log(err);
+            req.flash("error", "Error: Unable to get election results.");
+            res.redirect("/admin");
+          }
           else {
             let obj = {};
             obj = doc;
@@ -884,7 +883,11 @@ module.exports = (app, db) => {
         let admin = req.user.admin;
         
         Siawuser.find({ database, admin: false },  (err, docs) => {
-          if (err) { console.log(err); }
+          if (err) {
+            console.log(err);
+            req.flash("error", "Error: Unable to fetch the data. Please try again.");
+            res.redirect("/admin");
+          }
           else {
             res.render(process.cwd() + "/views/pug/pollwatchers", { arr: docs, admin });
           }
@@ -974,7 +977,11 @@ module.exports = (app, db) => {
         let database = req.user.database; // <- necessary?
         
         Siawuser.findOneAndRemove({ _id: id }, (err, doc) => {
-          if (err) { console.log(err); }
+          if (err) {
+            console.log(err);
+            req.flash("error", "Error: Unable to delete pollwatcher. Please try again.");
+            res.redirect("/admin");
+          }
           else {
             res.json({ success: "success" });
           }
@@ -985,9 +992,6 @@ module.exports = (app, db) => {
       app.post("/changeprecinct/:userid", adminProtectedMiddleware, (req, res) => {
         let precinct = req.body.precinct;
         let id = req.params.userid;
-        
-        console.log(precinct);
-        console.log(id);
         
         Siawuser.findOneAndUpdate({ _id: id }, { precinct }, { new: true }, (err, doc) => {
           if (err) {
@@ -1292,9 +1296,7 @@ const checkValidationResult = (req, res, next) => {
   const result = validationResult(req);
   const referer = req.headers.referer;
   let url = referer.split("https://election-day3.glitch.me")[1];
-  
-  console.log(url);
-  console.log(req.headers.referer);
+
   if (result.isEmpty()) {
       return next();
   }
