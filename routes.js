@@ -207,9 +207,9 @@ module.exports = (app, db) => {
                             obj.total_votes = 0;
                             obj.last_updated = "";
                             obj.updated_by = "";
-                            obj.opponent_votes = {
-                              opponent_1: 0,
-                              opponent_2: 0
+                            obj.candidate_votes = {
+                              cand_1: 0,
+                              cand_2: 0
                             };
                             
                             precincts.push(obj);
@@ -274,9 +274,16 @@ module.exports = (app, db) => {
 
                 if (verification_token == clicked_token) { // token matches
                   user.authenticated = true;
-                  user.save();
-                  req.flash("success", "Success! You are now verified.");
-                  res.render(process.cwd() + "/views/pug/verified", { successes: req.flash("success") });
+                  user.save()
+                  .then(() => {
+                    req.flash("success", "Success! You are now verified.");
+                    res.render(process.cwd() + "/views/pug/verified", { successes: req.flash("success") });
+                  })
+                  .catch((error) => {
+                    console.log(error);
+                    req.flash("error", "Error: Unable to verify account. Please try again.");
+                    res.redirect("/login");
+                  });
                 }
                 else { // token doesn't match
                   req.flash("error", "Verification failed. No user found or token invalid.");
@@ -302,7 +309,7 @@ module.exports = (app, db) => {
         let email = req.body.email.toLowerCase();
         let date = Date.now() + 3600000;
         
-        Siawuser.findOne({ email }, async (err, user) => {
+        Siawuser.findOne({ email }, (err, user) => {
           if (err) {
             console.log(err);
             req.flash("error", err);
@@ -311,15 +318,29 @@ module.exports = (app, db) => {
 
           else { // User found
             user.resetPassword = token;
-            user.save();
+            user.save()
+            .then(async () => {
+              let user_first = user.user_first;
 
-            let user_first = user.user_first;
+              const html = '<p>Hi ' + user_first + ',</p><p>A password reset was recently requested for this email address</p><p>To change your password, use the following link:</p><p><a href="https://election-day3.glitch.me/resetpassword/' + token + '">https://election-day3.glitch.me/resetpassword/' + token + '"</a>.</p><p>If you didn\'t make this request, you can ignore this message and your password will remain unchanged.</p><p>Have a pleasant day!</p>';
+              
+              try {
+                await sendEmail("scott@voterturnout.com", email, "Your password reset request", html);
 
-            const html = '<p>Hi ' + user_first + ',</p><p>A password reset was recently requested for this email address</p><p>To change your password, use the following link:</p><p><a href="https://election-day3.glitch.me/resetpassword/' + token + '">https://election-day3.glitch.me/resetpassword/' + token + '"</a>.</p><p>If you didn\'t make this request, you can ignore this message and your password will remain unchanged.</p><p>Have a pleasant day!</p>';
-            await sendEmail("scott@voterturnout.com", email, "Your password reset request", html);
-
-            req.flash("success", "An email has been sent to the email address you provided. Click the link to reset your password.");
-            res.redirect("/login");
+                req.flash("success", "Success! An email has been sent to the email address you provided. Click the link to reset your password.");
+                res.redirect("/admin");
+              }
+              catch (email_err) {
+                console.log(email_err);
+                req.flash("error", "Error: Unable to send reset email. Please try again.");
+                res.redirect("/requestreset");
+              }
+            })
+            .catch((error) => {
+              console.log(error);
+              req.flash("error", "Error: Unable to generate new token for verification. Please try again.");
+              res.redirect("/login");
+            });
           }
         });
 
@@ -381,22 +402,30 @@ module.exports = (app, db) => {
                   }
                   else { // THIRD ELSE: PASSWORD HASHED
                     user.password = hash;
-                    user.save();
-                    req.login(user, async (login_err) => {
-                      if (login_err) {
-                        console.log(login_err);
-                        req.flash("error", "Password changed, but unable to log in. Please try logging in below.");
-                        res.redirect("/login");
-                      }
+                    user.save()
+                    .then(() => {
                       
-                      else { // FOURTH ELSE: USER SAVED AND LOGGING IN
-                        
-                        req.flash("success", "Password successfully changed.");
-                        res.redirect("/admin");
-                      }
-                      
+                      req.login(user, async (login_err) => {
+                        if (login_err) {
+                          console.log(login_err);
+                          req.flash("error", "Password changed, but unable to log in. Please try logging in below.");
+                          res.redirect("/login");
+                        }
+
+                        else { // FOURTH ELSE: USER SAVED AND LOGGING IN
+
+                          req.flash("success", "Success! Password changed.");
+                          res.redirect("/admin");
+                        }
+
+                      });
+                    })
+                    .catch((error) => {
+                      console.log(error);
+                      req.flash("error", "Error: Unable to reset password. Please try again.");
+                      req.redirect("/admin");
                     });
-                  }
+                  }        
                 })
               }
             })
@@ -420,7 +449,7 @@ module.exports = (app, db) => {
           if (err) {
             console.log(err);
             req.flash("error", "Token is invalid");
-            res.render(process.cwd() + "/views/pug/pollwatcherconfirm", { errors: [{ msg: "Invalid entry." }] });
+            res.render(process.cwd() + "/views/pug/pollwatcherconfirm", { errors: req.flash("error") });
           }
           
           else { // FIRST ELSE: NO DATABASE ERROR
@@ -443,26 +472,33 @@ module.exports = (app, db) => {
                     if (user) {
                       user.password = hash;
                       user.authenticated = true;
-                      user.save();
-                      req.login(user, (login_err) => {
-                        if (login_err) {
-                          console.log(login_err);
-                          req.flash("error", "Authentication successful, but unable to log in. Please try logging in below.");
-                          res.redirect("/login");
-                        }
+                      user.save()
+                      .then(() => {
+                        req.login(user, (login_err) => {
+                          if (login_err) {
+                            console.log(login_err);
+                            req.flash("error", "Authentication successful, but unable to log in. Please try logging in below.");
+                            res.redirect("/login");
+                          }
 
-                        else { // FOURTH ELSE: USER SAVED AND LOGGING IN
+                          else { // FOURTH ELSE: USER SAVED AND LOGGING IN
 
-                          let admin = req.user.admin;
+                            let admin = req.user.admin;
+                            req.flash("success", "Success! You are registered and authenticated.");
+                            res.redirect("/admin", { admin });
+                          }
 
-                          req.flash("success", "You are registered and authenticated.");
-                          res.redirect("/admin", { admin });
-                        }
-
+                        });
+                      })
+                      .catch((error) => {
+                        console.log(error);
+                        req.flash("error", "Error: Unable to confirm account. Please try again.");
+                        req.redirect("/pollwatcherconfirm");
                       });
                     }
                     else {
-                      res.render(process.cwd() + "/views/pug/pollwatcherconfirm", { msg: "No user found" });
+                      req.flash("error", "Error: No user found");
+                      res.redirect("/pollwatcherconfirm");
                     }
                   }
                 })
@@ -499,6 +535,7 @@ module.exports = (app, db) => {
       app.get("/contact", (req, res) => {
         res.render(process.cwd() + "/views/pug/contact");
       });
+
       
       
       /*
@@ -607,18 +644,18 @@ module.exports = (app, db) => {
         
         let precinct = req.user.precinct;
         let database = req.user.database;
-        let opponent_votes = req.body;
+        let candidate_votes = req.body;
         let total_votes = req.body.total;
-        delete opponent_votes.total;
+        delete candidate_votes.total;
         
-        let candidates = Object.keys(opponent_votes);
+        let candidates = Object.keys(candidate_votes);
         let len = candidates.length;
         
         for (let i = 0; i < len; i++) {
           let candidate = candidates[i];
-          let str = opponent_votes[candidate];
+          let str = candidate_votes[candidate];
           let num = parseInt(str);
-          opponent_votes[candidate] = num;
+          candidate_votes[candidate] = num;
         }
         
         let tempdate= new Date().toString().split("GMT+0000 (UTC)")[0].split(" 2019");
@@ -641,11 +678,18 @@ module.exports = (app, db) => {
         Campaign.findOne({ database })
         .exec()
         .then((doc) => {
-          doc.precincts[precinct - 1].opponent_votes = opponent_votes; // <- HACKY. USING [precinct - 1] TO IDENTIFY THE ARRAY INDEX, RATHER THAN CAPTURING THE OBJECT FOR WHICH PRECINCT = 1. PRECINCT 1 WILL BE AT INDEX 0, PRECINCT 2 AT INDEX 1, AND SO ON.
+          doc.precincts[precinct - 1].candidate_votes = candidate_votes; // <- HACKY. USING [precinct - 1] TO IDENTIFY THE ARRAY INDEX, RATHER THAN CAPTURING THE OBJECT FOR WHICH PRECINCT = 1. PRECINCT 1 WILL BE AT INDEX 0, PRECINCT 2 AT INDEX 1, AND SO ON.
           doc.precincts[precinct - 1].total_votes = total_votes; // <- HACKY
           doc.precincts[precinct - 1].last_updated = last_updated; // <- HACKY
-          doc.save();
-          res.redirect("/report");
+          doc.save()
+          .then(() => {
+            res.redirect("/report");
+          })
+          .catch((error) => {
+            console.log(error);
+            req.flash("error", "Unable to report numbers. Please try again.");
+            res.redirect("/choice");
+          });
         })
         .catch((err) => {
           console.log(err);
@@ -961,12 +1005,18 @@ module.exports = (app, db) => {
             
             const html = '<p>Hi ' + user_first + ',</p><p>You have been requested to join the ' + public_name + ' campaign.</p><p>Your token is ' + token + '</p><p>Use the following link to create an account and complete your registration:</p><p><a href="https://election-day3.glitch.me/pollwatcherconfirm">https://election-day3.glitch.me/pollwatcherconfirm</a></p><p>Have a pleasant day!</p>';
             
+            try {
+              await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
+              req.flash("success", "User added. Have user check their email to authenticate their account.");
+              res.render(process.cwd() + "/views/pug/addpollwatcher", { admin, successes: req.flash("success") });
+            }
+            catch (email_err) {
+              console.log(email_err);
+              req.flash("error", "Error: Unable to send verification email to user. Please delete them under your pollwatcher tab, and then re-invite them.");
+              req.redirect("/admin");
+              
+            }
             
-            await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
-            
-            
-            req.flash("success", "User added. Have user check their email to authenticate their account.");
-            res.render(process.cwd() + "/views/pug/addpollwatcher", { admin, success: req.flash("success") });
           }
         });
 
@@ -1001,9 +1051,16 @@ module.exports = (app, db) => {
           }
           else {
             doc.precinct = precinct;
-            doc.save();
-            req.flash("success", "Success! Pollwatcher precinct changed.");
-            res.redirect("/pollwatchers");
+            doc.save()
+            .then(() => {
+              req.flash("success", "Success! Pollwatcher precinct changed.");
+              res.redirect("/pollwatchers");
+            })
+            .catch((error) => {
+              console.log(error);
+              req.flash("error", "Error: Unable to change precinct. Please try again.");
+              res.redirect("/configure");
+            });
           }
         });
       });
@@ -1040,8 +1097,8 @@ module.exports = (app, db) => {
       });
       
       
-      app.post("/addopponents", adminProtectedMiddleware, [
-        check("opponents").custom((val) => {
+      app.post("/addcandidates", adminProtectedMiddleware, [
+        check("candidates").custom((val) => {
           
           let len = val.split(",").length - 1;
           
@@ -1057,17 +1114,17 @@ module.exports = (app, db) => {
         let database = req.user.database;
         let admin = req.user.admin;
         
-        let opponents_string = req.body.opponents; // "Dwight D. Eisenhower, John F. Kennedy, Woodrow Wilson"
+        let candidates_string = req.body.candidates; // "Dwight D. Eisenhower, John F. Kennedy, Woodrow Wilson"
         let regex = /,\s*/g;
-        let opponents = opponents_string.split(regex);
-        let len = opponents.length;
+        let candidates = candidates_string.split(regex);
+        let len = candidates.length;
         let obj = {};
         for (let i = 0; i < len; i++) {
-          let opponent = opponents[i] // "Dwight D. Eisenhower"
-          obj[opponent] = 0; // "Dwight D. Eisenhower": 0
+          let candidate = candidates[i] // "Dwight D. Eisenhower"
+          obj[candidate] = 0; // "Dwight D. Eisenhower": 0
         }
         
-        Campaign.findOneAndUpdate( { database }, { $set: { "precincts.$[elem].opponent_votes": obj } }, { "arrayFilters": [{ "elem.number": { $gte: 1 } }], "multi": true }, (err, doc) => {
+        Campaign.findOneAndUpdate( { database }, { $set: { "precincts.$[elem].candidate_votes": obj } }, { "arrayFilters": [{ "elem.number": { $gte: 1 } }], "multi": true }, (err, doc) => {
           if (err) {
             console.log(err);
             req.flash("error", "Error: Could not update precincts at this time. Please try again.");
@@ -1103,9 +1160,16 @@ module.exports = (app, db) => {
             for (let i = 0; i < difference; i++) {
               doc.precincts.pop();
             }
-            doc.save();
-            req.flash("success", "Precincts successfully updated.");
-            res.render(process.cwd() + "/views/pug/configure", { successes: req.flash("success") });
+            doc.save()
+            .then(() => {
+              req.flash("success", "Precincts successfully updated.");
+              res.render(process.cwd() + "/views/pug/configure", { successes: req.flash("success") });
+            })
+            .catch((err) => {
+              console.log(err);
+              req.flash("error", "Error: Unable to change the number of precincts. Please try again.");
+              res.redirect("/configure");
+            });
 
           }
 
@@ -1119,9 +1183,16 @@ module.exports = (app, db) => {
               doc.precincts.push(obj); // push 41st precinct object into precincts array
             }
             
-            doc.save();
-            req.flash("success", "Precincts successfully updated.")
-            res.render(process.cwd() + "/views/pug/configure", { successes: req.flash("success") });
+            doc.save()
+            .then(() => {
+              req.flash("success", "Success! Precincts successfully updated.");
+              res.render(process.cwd() + "/views/pug/configure", { successes: req.flash("success") });
+            })
+            .catch((err) => {
+              console.log(err);
+              req.flash("error", "Error: Unable to change the number of precincts. Please try again.");
+              res.redirect("/configure");
+            });
           }
 
           else { // difference is 0 (they entered same number as before)
@@ -1208,6 +1279,15 @@ module.exports = (app, db) => {
           }
         
         });
+      });
+      
+      app.get("/howto", adminProtectedMiddleware, (req, res) => {
+        let admin = req.user.admin;
+        res.render(process.cwd() + "/views/pug/howto", { admin });
+      });
+      
+      app.get('*', (req, res) => {
+        res.send("The route was not found. Please go back to the homepage and try again.", 404);
       });
       
       

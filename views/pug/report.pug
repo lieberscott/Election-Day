@@ -17,7 +17,7 @@ block main
     h3 Voter totals for Precinct #{ precinct }
     div.form
       form.login-form(method="POST" action="/report")
-        - let candidates = Object.keys(doc.precincts[0].opponent_votes)
+        - let candidates = Object.keys(doc.precincts[0].candidate_votes)
         for candidate in candidates
           div.row
             label(for=candidate)=candidate

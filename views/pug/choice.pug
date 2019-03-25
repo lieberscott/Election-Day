@@ -11,7 +11,6 @@ block extrascript
 
 block main
   div.login-page
-    != messages('messages', local)
     if errors
       for error, i in errors
         div(class="alert alert-danger") #{error.msg}

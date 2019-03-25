@@ -12,10 +12,10 @@ const campaignSchema = mongoose.Schema({
     total_votes: {type: Number, default: 0 }, // 342
     last_updated: { type: String, default: "" }, // total votes last_updated, manipulate a Date object to get this to be human readable
     updated_by: { type: String, default: "" }, // total votes updated by
-    opponent_votes: { type: mongoose.Schema.Types.Mixed, default: {} } // Types.Mixed allows you to save an empty object as a default, also must includle { minimize: false } as second argument of schema (as seen below0
+    candidate_votes: { type: mongoose.Schema.Types.Mixed, default: {} } // Types.Mixed allows you to save an empty object as a default, also must includle { minimize: false } as second argument of schema (as seen below0
     // only will be reported once, at the end of the night
     /*
-    opponent_votes: {
+    candidate_votes: {
       "Matt Martin": 45,
       "Eileen Dordek": 39,
       "Jeff Jenkins": 14 

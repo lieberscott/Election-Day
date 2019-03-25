@@ -10,26 +10,26 @@ block extrascript
 block main
     
     
-  - let x = obj.precincts[0].opponent_votes;
+  - let x = obj.precincts[0].candidate_votes;
   - let cands = Object.keys(x);
   h1 Precinct Voters
   p Number of your supporters who have voted and not voted as of #{date}
   div.row.font-weight-bold
     div.col-1 Precinct
     each cand in cands
-      div.col-1.opponent= cand
+      div.col-1= cand
     div.col-1 Vote totals
   hr
   each item, i in obj.precincts
     div.row.text-center
       div.col-1
       each cand, int in cands
-        div(class="cand"+int).col-1=item.opponent_votes[cand]
+        div(class="cand"+int).col-1=item.candidate_votes[cand]
       div.col-1=item.total_votes
     div.row.text-center
       div(class="precinct"+item.number).col-1=item.number
       each cand, int in cands
-        - let percent = (Math.round(item.opponent_votes[cand] / item.total_votes * 1000) / 10) || 0;
+        - let percent = (Math.round(item.candidate_votes[cand] / item.total_votes * 1000) / 10) || 0;
         div.col-1=percent + "%"
     div.row
       div.col-1
@@ -43,7 +43,7 @@ block main
     console.log(local_data);
     let precincts = local_data.precincts; // array of precincts
     let precincts_len = precincts.length; // number of precincts
-    let candidates = Object.keys(precincts[0].opponent_votes); // ["Matt Martin", "Michael Negron", etc.]
+    let candidates = Object.keys(precincts[0].candidate_votes); // ["Matt Martin", "Michael Negron", etc.]
     console.log("candidates : ", candidates);
     let candidates_len = candidates.length; // number of candidates
     console.log(candidates_len);
@@ -61,7 +61,7 @@ block main
       ward_votes += precincts[i].total_votes;
       for (let j = 0; j < candidates_len; j++) {
         let cand = candidates[j];
-        candidate_totals[cand] += precincts[i].opponent_votes[cand];
+        candidate_totals[cand] += precincts[i].candidate_votes[cand];
       }
     }
     

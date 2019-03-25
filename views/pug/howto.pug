@@ -1,0 +1,88 @@
+extends layout.pug
+
+block extralink
+  link(rel="stylesheet" href="/style.css")
+
+block extrascript
+  script(src="https://code.jquery.com/jquery-3.3.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous")
+  script(src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous")
+  script(src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous")
+
+block main
+
+  h3 How to use this application
+  p Here's how to get the most out of this application.
+  div.list-group
+    div.list-group-item.list-group-item-action.flex-column.align-items-start
+      div.d-flex.w-100.justify-content-between
+        h5.mb-1 Have pollwatchers check off voters as they arrive to the polling location
+      p.mb-1 As long as pollwatchers are not actively campaigning, they can listen as voters check in. Then, they can check off the voter on their application interface. The voter is now counted as having voted, and the campaign no longer has to worry about that voter getting to the polls.
+      
+    div.list-group-item.list-group-item-action.flex-column.align-items-start
+      div.d-flex.w-100.justify-content-between
+        h5.mb-1 Have phone bankers and canvassers contact people on your list
+      p.mb-1 You'll probably be running two or three canvasses throughout the day. Before cutting your turf, export your list from the site, then bulk upload it to Votebuilder so you can remove people who have already voted before you start knocking doors and making calls.
+
+      
+    div.list-group-item.list-group-item-action.flex-column.align-items-start
+      div.d-flex.w-100.justify-content-between
+        h5.mb-1 Have pollwatchers report vote totals throughout the day
+      p.mb-1 Most polling locations keep a running tab of the number of people who have voted in that precinct. Have your pollwatcher report that number at given times throughout the day. (Check the results 
+        a(href="/electionresults") here
+      | . Then, based on the results, deploy volunteers to high-traffic precinct locations to hand out palm cards.
+  
+  div#configure
+  
+  h3 How to configure this application
+  p This application is meant to 
+    strong Get Out The Vote!
+  p This application is meant to be used 
+    strong on 
+    | Election Day (or during early voting)
+  p When used in combination with your campaign's volunteers, this application can:
+    ul
+      li Show you precinct by precinct how many of your supporters have yet to vote, and how many have already voted
+      li Show you a list of all your supporters, with name, address and phone number, who have yet to vote, and who have already voted
+      li Organize and centralize your list of pollwatchers
+      li Tell you which precincts have high voter turnout, so you can deploy palm card volunteers to strategic locations
+      li Give you instant results once the polls have closed (and your pollwatchers report the precinct numbers)
+  p Here's how to configure this application so it works for you:
+  div.list-group
+    div.list-group-item.list-group-item-action.flex-column.align-items-start
+      div.d-flex.w-100.justify-content-between
+        h5.mb-1 Step 1: Configure your campaign
+      small Visit the 
+        a(href="/configure") configure page.
+      p.mb-1 Enter the number of precincts you have (even if you won't have pollwatchers there), as well as ALL the candidate names (including your own!). Then check out the 
+        a(href="/electionresults") election results 
+        | page to see all the data you need.
+      
+    div.list-group-item.list-group-item-action.flex-column.align-items-start
+      div.d-flex.w-100.justify-content-between
+        h5.mb-1 Step 2: Add your pollwatchers' data
+      small Visit the 
+        a(href="addpollwatcher") add pollwatcher page.
+      p.mb-1 Enter your pollwatcher data, including their email, phone, and the precinct they will be representing. Don't worry, you can change this later if you need to.
+      p.mb-1 Now your pollwatchers can enter voter totals throughout the day, and report the vote totals when they're posted when the polls close, so you have the results instantly.
+      
+    div.list-group-item.list-group-item-action.flex-column.align-items-start
+      div.d-flex.w-100.justify-content-between
+        h5.mb-1 Step 3: Make your list
+      small Do this from your voter database (Votebuilder, etc.)
+      p.mb-1 Cut a list of all the voters you want to make sure go to the polls. This could be a list of 1s and 2s, just 1s, or it could be a custom list based on demographics, neighborhood, etc. (or some combination thereof!)
+    
+    div.list-group-item.list-group-item-action.flex-column.align-items-start
+      div.d-flex.w-100.justify-content-between
+        h5.mb-1 Step 4: Organize your list
+      p.mb-1 When you download your list, it will likely be an Excel document.
+      p.mb-1 In order to work with this application, the Excel document should be saved in .csv format, and it should have exacty eight columns with the following headers, in this order: van_id, lastname, firstname, address, phone, ward, precinct, voted
+      p.mb-1 We require 'van_id' for two reasons. First, so we make sure you don't have two rows of the same voter uploaded. And second, so throughout the day you can bulk upload the data to VAN (if, for example, you want to cut a new turf and remove everyone who has already voted).
+      p.mb-1 The 'voted' column should be a '0' for all records, indicating they have not voted. Anyone who has already voted (for example, if your campaign has early voting) shouldn't be on the list to begin with. That defeats the purpose of the application, which is to focus resources on the people who haven't voted yet!
+    
+    div.list-group-item.list-group-item-action.flex-column.align-items-start
+      div.d-flex.w-100.justify-content-between
+        h5.mb-1 Step 5: Upload your list
+      small Visit the 
+        a(href="upload") upload page.
+      p.mb-1 When you upload your list, your pollwatchers will have access to the voters and can X them out when they vote!
+      p.mb-1 Depending on the resources of the campaign, if you have people phone banking, they too can access the lists of people who have not yet voted, ask them if they need a ride, ask if they have a plan to vote, and urge them to get to the polls!

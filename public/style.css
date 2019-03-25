@@ -11,28 +11,6 @@ button a, button u {
   text-decoration: none !important;
 }
 
-/* button {
-  font-size: 16px;
-  border-radius: 3px;
-  background-color: lightgrey;
-  border: 1px solid grey;
-  box-shadow: 2px 2px teal;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: yellow;
-}
-
-button:active {
-  box-shadow: none;
-} */
-
-/* button {
-  float: right;
-  margin-left: 10px;
-} */
-
 input, button.far, submit {
   border: none;
   float: right;
@@ -56,4 +34,12 @@ main {
 
 .del {
   background-color: #FFCCE5;
+}
+
+.list-group {
+  margin-bottom: 30px;
+}
+
+#configure {
+  margin-bottom: 100px;
 }
