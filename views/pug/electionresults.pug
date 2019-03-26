@@ -13,7 +13,11 @@ block main
   - let x = obj.precincts[0].candidate_votes;
   - let cands = Object.keys(x);
   h1 Precinct Voters
-  p Number of your supporters who have voted and not voted as of #{date}
+  p Updated list of vote totals by precinct
+  p To update the candidates list, visit the 
+    a(href="/configure") configure 
+    | page. 
+    strong WARNING: This will override your current data! Make sure this is set up prior to Election Day!
   div.row.font-weight-bold
     div.col-1 Precinct
     each cand in cands

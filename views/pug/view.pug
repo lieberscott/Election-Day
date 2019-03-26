@@ -20,7 +20,7 @@ block main
     div(id="section" + (i + 1))
       if item.voted == "0"
         div.font-weight-bold
-          button.far.fa-times-circle(id=item._id data-pollwatcher=pollwatcher)
+          button.far.fa-times-circle(id=(item._id) data-pollwatcher=pollwatcher)
         div.row
           div.col-4=item.firstname + " " + item.lastname
           div.col-4=item.address

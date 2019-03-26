@@ -21,7 +21,7 @@ block main
   each item, i in arr
     div(id="section" + (i + 1))
       div.font-weight-bold
-        button.far.fa-times-circle(id=item._id data-pollwatcher=pollwatcher)
+        button.far.fa-times-circle(id=(item._id) data-pollwatcher=pollwatcher)
       div.row
         div.col-3=item.firstname
         div.col-3=item.lastname

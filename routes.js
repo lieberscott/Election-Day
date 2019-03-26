@@ -42,7 +42,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 6000000 }, // fileSize limit is set at 5MB
+  limits: { fileSize: 5000000 }, // fileSize limit is set at 5MB
   fileFilter: (req, file, cb) => { path.extname(file.originalname) == ".csv" ? cb(null, true) : cb("Must be a .csv file") }
 }).single("file");
 
@@ -184,7 +184,7 @@ module.exports = (app, db) => {
                       // send verification email
                       const html = '<p>Hi ' + user_first + ',</p><p>Thank you for signing up with Turnout the Vote!</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://election-day3.glitch.me/verify/' + verification_token + '/' + email + '">https://election-day3.glitch.me/verify/' + verification_token + '/' + email + '</a></p><p> Have a pleasant day!</p>';
                       try {
-                        await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
+                        await sendEmail("robot@voterturnout.com", email, "Please verify your account", html);
                       }
                       catch (email_err) {
                         console.log(email_err);
@@ -307,7 +307,6 @@ module.exports = (app, db) => {
       app.post("/requestreset", (req, res) => {
         let token = randomstring.generate();
         let email = req.body.email.toLowerCase();
-        let date = Date.now() + 3600000;
         
         Siawuser.findOne({ email }, (err, user) => {
           if (err) {
@@ -325,7 +324,7 @@ module.exports = (app, db) => {
               const html = '<p>Hi ' + user_first + ',</p><p>A password reset was recently requested for this email address</p><p>To change your password, use the following link:</p><p><a href="https://election-day3.glitch.me/resetpassword/' + token + '">https://election-day3.glitch.me/resetpassword/' + token + '"</a>.</p><p>If you didn\'t make this request, you can ignore this message and your password will remain unchanged.</p><p>Have a pleasant day!</p>';
               
               try {
-                await sendEmail("scott@voterturnout.com", email, "Your password reset request", html);
+                await sendEmail("robot@voterturnout.com", email, "Your password reset request", html);
 
                 req.flash("success", "Success! An email has been sent to the email address you provided. Click the link to reset your password.");
                 res.redirect("/requestreset");
@@ -485,7 +484,7 @@ module.exports = (app, db) => {
 
                             let admin = req.user.admin;
                             req.flash("success", "Success! You are registered and authenticated.");
-                            res.redirect("/admin");
+                            res.redirect("/login");
                           }
 
                         });
@@ -594,8 +593,8 @@ module.exports = (app, db) => {
         
         let database = req.user.database;
         
-        let id = ObjectId(req.query.clickedId);
-        let pollwatcher = req.query.pollwatcher;
+        let id = ObjectId(req.body.clickedId);
+        let pollwatcher = req.body.pollwatcher;
         let tempdate= new Date().toString().split("GMT+0000 (UTC)")[0].split(" 2019");
         let d = tempdate[1].split(":");
         let time = Number(d[0]);
@@ -606,10 +605,9 @@ module.exports = (app, db) => {
         else if (time == -3) { t = 2 }
         else if (time == -4) { t = 1 }
         else if (time == -5) { t = 12 }
-        let date = tempdate[0] + " " + t + ":" + d[1] + ":" + d[2];        
+        let date = tempdate[0] + " " + t + ":" + d[1] + ":" + d[2];
         
-        
-        db.collection(database).findOneAndUpdate({ _id: id }, { $set: { voted : "1", enteredBy: pollwatcher, date } }, (err, doc) => {
+        db.collection(database).findOneAndUpdate({ _id: id }, { $set: { voted: "1", enteredBy: pollwatcher, date } }, (err, doc) => {
           if (err) {
             console.log(err);
             req.flash("error", "Unable to count voter. Please try again.");
@@ -640,7 +638,7 @@ module.exports = (app, db) => {
         })
       });
       
-      app.post("/report", (req, res) => { // pollwatcher page for reporting numbers
+      app.post("/report", pollwatcherProtectedMiddleware, (req, res) => { // pollwatcher page for reporting numbers
         
         let precinct = req.user.precinct;
         let database = req.user.database;
@@ -696,6 +694,7 @@ module.exports = (app, db) => {
           req.flash("error", "Unable to report numbers. Please try again.");
           res.redirect("/choice");
         });
+        
       });
       
       app.get("/pollwatcherconfigure", pollwatcherProtectedMiddleware, (req, res) => {
@@ -719,8 +718,8 @@ module.exports = (app, db) => {
       app.get("/payment", adminMiddleware, (req, res) => {
         let admin = req.user.admin;
         let paid = req.user.paid;
-        let authorized = req.user.authorized;
-        res.render(process.cwd() + '/views/pug/payment', { admin, paid, authorized });
+        let authenticated = req.user.authenticated;
+        res.render(process.cwd() + '/views/pug/payment', { admin, paid, authenticated });
       });
       
       
@@ -925,7 +924,9 @@ module.exports = (app, db) => {
         let database = req.user.database;
         let admin = req.user.admin;
         
-        Siawuser.find({ database, admin: false },  (err, docs) => {
+        Siawuser.find({ database, admin: false })
+        .sort({ precinct: 1 } )
+        .exec((err, docs) => {
           if (err) {
             console.log(err);
             req.flash("error", "Error: Unable to fetch the data. Please try again.");
@@ -1007,7 +1008,7 @@ module.exports = (app, db) => {
             const html = '<p>Hi ' + user_first + ',</p><p>You have been requested to join the ' + public_name + ' campaign.</p><p>Your token is ' + token + '</p><p>Use the following link to create an account and complete your registration:</p><p><a href="https://election-day3.glitch.me/pollwatcherconfirm">https://election-day3.glitch.me/pollwatcherconfirm</a></p><p>Have a pleasant day!</p>';
             
             try {
-              await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
+              await sendEmail("robot@voterturnout.com", email, "Please verify your account", html);
               req.flash("success", "User added! Please have user authenticate their account and set their password.");
               res.render(process.cwd() + "/views/pug/addpollwatcher", { admin, successes: req.flash("success") });
             }
@@ -1249,7 +1250,7 @@ module.exports = (app, db) => {
           const html = '<p>Hi ' + user_first + ',</p><p>A request was made to resend a verification token for your account.</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://election-day3.glitch.me/verify/' + verification_token + '/' + email + '">https://election-day3.glitch.me/verify/' + verification_token + '/' + email + '</a></p><p> Have a pleasant day!</p>';
           
           try {
-            await sendEmail("scott@voterturnout.com", email, "Please verify your account", html);
+            await sendEmail("robot@voterturnout.com", email, "Please verify your account", html);
             req.flash("success", "Email sent!");
             res.redirect("/payment");
           }
@@ -1365,6 +1366,7 @@ const adminProtectedMiddleware = (req, res, next) => {
 const pollwatcherProtectedMiddleware = (req, res, next) => {
   
   if (req.isAuthenticated()) {
+    res.query = req.query;
     next();
   }
   else {

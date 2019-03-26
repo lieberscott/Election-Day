@@ -1,6 +1,6 @@
 html
   head
-    title Election Day App
+    title Every vote GOTV
     meta(name="description" content="A cool thing made with Glitch")
     link#favicon(rel="icon" href="https://glitch.com/edit/favicon-app.ico" type="image/x-icon")
     meta(charset="utf-8")
@@ -46,14 +46,11 @@ html
             li.nav-item
               a.nav-link(href="/logout") Logout
       else
-        a.navbar-brand(href="/admin") Home
+        a.navbar-brand(href="/choice") Home
         button.navbar-toggler(type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation")
           span.navbar-toggler-icon
         div.collapse.navbar-collapse#navbarSupportedContent
           ul.navbar-nav.mr-auto
-            li.nav-item.active
-              a.nav-link(href="/choice") Home
-                span.sr-only (current)
             li.nav-item
               a.nav-link(href="/watch") Voter List
             li.nav-item

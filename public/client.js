@@ -34,7 +34,7 @@ $(document).on("click", ".fa-times-circle", (e) => {
   // STEP 1: HIDE the element (so user can undo the "deletion"),
   let clickedId = e.target.id;
   let pollwatcher = e.target.getAttribute("data-pollwatcher");
-  let sectionToHide = $("#" + clickedId).parentsUntil(".container");
+  let sectionToHide = $("#" + clickedId).parentsUntil(".col-10");
   sectionToHide.hide();
 
   sectionToHide.after('<button class="undo" id="undo' + undoCounter + '" style="display: block;">Undo deletion</button>');
@@ -56,7 +56,7 @@ $(document).on("click", ".fa-times-circle", (e) => {
       success: () => { console.log("success") },
       failure: () => { console.log("failure") }
     });
-  }, 5000);
+  }, 12000);
   
 });
 

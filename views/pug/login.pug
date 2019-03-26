@@ -21,6 +21,11 @@ html(lang="en")
           for success, i in successes
             div(class="alert alert-success") #{ success }
         h3 Login
+        p If you are starting a campaign, go to the 
+          a(href="/register") registration 
+          | page. 
+          strong If you are a pollwatcher for a campaign, that campaign's administrator must have invited you 
+          | for you to gain access to the campaign. Once they invite you, you should receive an email to authenticate your account and set your password. If you were invited by an administrator but did not receive this email, click the reset password link below.
         div.form
           form.login-form(method="POST" action="/login")
             input(name="username" type="text" placeholder="user")

@@ -8,53 +8,35 @@ html
     meta(name="viewport" content="width=device-width, initial-scale=1")
     link(rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css")
     link(rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous")
-    link(rel="stylesheet" href="/layout.css")
     link(rel="stylesheet" href="/payment.css")
     script(src="https://code.jquery.com/jquery-3.3.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous")
     script(src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous")
     script(src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous")
-    script(src="/client.js" defer)
     script(src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous")
 
   
   body
     nav.navbar.navbar-expand-md.navbar-light.bg-light.sticky-top
-      if admin
-        a.navbar-brand(href="/admin") Home
-        button.navbar-toggler(type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation")
-          span.navbar-toggler-icon
-        div.collapse.navbar-collapse#navbarSupportedContent
-          ul.navbar-nav.mr-auto
-            li.nav-item.hide.active
-              a.nav-link(href="/precincts") Precinct List
-                span.sr-only (current)
-            li.nav-item.hide
-              a.nav-link(href="/totals") Voter Totals
-            li.nav-item.hide
-              a.nav-link(href="#") Election Results
-            li.nav-item.hide
-              a.nav-link(href="/precincts") View Current List
-            li.nav-item.hide
-              a.nav-link(href="/upload") Upload New List
-            li.nav-item.hide
-              a.nav-link(href="/") Export Current List
-            li.nav-item
-              a.nav-link(href="/logout") Logout
-      else
-        a.navbar-brand(href="/admin") Home
-        button.navbar-toggler(type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation")
-          span.navbar-toggler-icon
-        div.collapse.navbar-collapse#navbarSupportedContent
-          ul.navbar-nav.mr-auto
-            li.nav-item.active
-              a.nav-link(href="/choice") Home
-                span.sr-only (current)
-            li.nav-item
-              a.nav-link(href="/") Voter List
-            li.nav-item
-              a.nav-link(href="/report") Report Numbers
-            li.nav-item
-              a.nav-link(href="/logout") Logout
+      a.navbar-brand(href="#") Home
+      button.navbar-toggler(type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation")
+        span.navbar-toggler-icon
+      div.collapse.navbar-collapse#navbarSupportedContent
+        ul.navbar-nav.mr-auto
+          li.nav-item.hide.active
+            a.nav-link(href="#") Precinct List
+              span.sr-only (current)
+          li.nav-item.hide
+            a.nav-link(href="#") Voter Totals
+          li.nav-item.hide
+            a.nav-link(href="#") Election Results
+          li.nav-item.hide
+            a.nav-link(href="#") View Current List
+          li.nav-item.hide
+            a.nav-link(href="#") Upload New List
+          li.nav-item.hide
+            a.nav-link(href="/") Export Current List
+          li.nav-item
+            a.nav-link(href="#") Logout
         
         
     div.container.container-fluid
@@ -63,12 +45,12 @@ html
           div.sidebar-sticky
             ul.nav.flex-column
               li.nav-item
-                a.nav-link.active(href="/admin")
+                a.nav-link.active(href="#")
                   i.fas.fa-home
                   span   Dashboard
                     span.sr-only (current)
               li.nav-item
-                a.nav-link(href="/totals")
+                a.nav-link(href="#")
                   i.fas.fa-vote-yea
                   span     Voter Totals
               li.nav-item
@@ -76,11 +58,11 @@ html
                   i.far.fa-chart-bar
                   span   Election Results
               li.nav-item
-                a.nav-link(href="/precincts")
+                a.nav-link(href="#")
                   i.fas.fa-file
                   span   View Current List
               li.nav-item
-                a.nav-link(href="/upload")
+                a.nav-link(href="#")
                   i.fas.fa-upload
                   span   Upload A New List
               li.nav-item
@@ -88,7 +70,7 @@ html
                   i.fas.fa-file-export
                   span   Export Current List
               li.nav-item
-                a.nav-link(href="/logout")
+                a.nav-link(href="#")
                   i.fas.fa-sign-out-alt
                   span   Logout
 
@@ -105,7 +87,7 @@ html
                 p.card-text Upload a list of supporters you want to turn out. Then you can watch the polls for them to show up, call them directly, or go to their door to get them to the polls. Once they've voted, have your pollwatcher ex them out, and focus on the rest of your list.
                 a.btn.btn-primary(href="#") Learn more
               ul.list-group.list-group-flush
-                a(href="/upload")
+                a(href="#")
                   li.list-group-item Upload a new list
                 a(href="#")
                   li.list-group-item View current list
@@ -130,19 +112,25 @@ html
           if successes.length > 0
             for success in successes
               div.alert.alert-success #{ success }
-          else if authorized && !paid
+          else if authenticated && !paid
             div.alert.alert-success Email has been verified. Pay below to access the full site.
-          else if !authorized && paid
+          else if !authenticated && paid
             div.alert.alert-success Payment has been received. Verify your account to access the full site.
-          else if !authorized && !paid
+          else if !authenticated && !paid
             div.alert.alert-danger Please verify your account and pay below to access the full site. Click the link in the verification email sent to you, or request another verification email by clicking the button below.
-          form(action="/stripe" method="POST")
-            script(src="https://checkout.stripe.com/checkout.js" class="stripe-button" data-key="pk_test_TYooMQauvdEDq54NiTphI7jx" data-amount="999" data-name="Stripe.com" data-description="Example charge" data-image="https://stripe.com/img/documentation/checkout/marketplace.png" data-locale="auto" data-zip-code="true")
-          form(action="/resendverification" method="POST")
-            button.btn.btn-outline-secondary.align-right(type="submit") Resend Verification
-          button.btn.btn-primary.align-right
-            a(href="/logout") Logout
-          form(onsubmit="return confirm('Are you sure you want to delete your account?')" action="/deleteaccount" method="POST")
-            button.btn.btn-danger.align-right(type="submit") Delete account
+          if !paid
+            form(action="/stripe" method="POST")
+              script(src="https://checkout.stripe.com/checkout.js" class="stripe-button" data-key="pk_test_TYooMQauvdEDq54NiTphI7jx" data-amount="999" data-name="Stripe.com" data-description="Example charge" data-image="https://stripe.com/img/documentation/checkout/marketplace.png" data-locale="auto" data-zip-code="true")
+          if !authenticated
+            div.row
+              div.col-6
+                form(action="/resendverification" method="POST")
+                  button.btn.btn-dark.align-right(type="submit") Resend Email Verification
+          div.row
+            div.col-3
+              a(href="/logout").btn.btn-outline-secondary.align-right Logout
+            div.col-4
+              form(onsubmit="return confirm('Are you sure you want to delete your account?')" action="/deleteaccount" method="POST")
+                button.btn.btn-outline-danger.align-right(type="submit") Delete account
           p If you still see this prompt after verifying your account and paying, 
             a(href="/admin") click here
