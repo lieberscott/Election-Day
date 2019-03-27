@@ -1,37 +1,29 @@
-html(lang="en")
-  head
-    title Login
-    meta(name="description" content="A cool thing made with Glitch")
-    link#favicon(rel="icon" href="https://glitch.com/edit/favicon-app.ico" type="image/x-icon")
-    meta(charset="utf-8")
-    meta(http-equiv="X-UA-Compatible" content="IE=edge")
-    meta(name="viewport" content="width=device-width, initial-scale=1")
-    link(rel="stylesheet" href="/loginstyle.css")
-    link(rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css")
-    script(src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous")
-    script(src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous")
-    
-  body
-    div.container.container-fluid
-      div.login-page
-        if errors
-          for error, i in errors
-            div(class="alert alert-danger") #{ error }
-        if successes
-          for success, i in successes
-            div(class="alert alert-success") #{ success }
-        h3 Login
-        p If you are starting a campaign, go to the 
-          a(href="/register") registration 
-          | page. 
-          strong If you are a pollwatcher for a campaign, that campaign's administrator must have invited you 
-          | for you to gain access to the campaign. Once they invite you, you should receive an email to authenticate your account and set your password. If you were invited by an administrator but did not receive this email, click the reset password link below.
-        div.form
-          form.login-form(method="POST" action="/login")
-            input(name="username" type="text" placeholder="user")
-            input(name="password" type="password" placeholder="password")
-            button(type=submit) Login
-            p.message Forgot your password? 
-              a(href="/requestreset") Reset Password
-            p.message Not registered? 
-              a(href="/register") Create an account
+extends indexlayout.pug
+
+block extralink
+  link(rel="stylesheet" href="/loginstyle.css")
+
+block main
+  div.container.container-fluid
+    div.login-page
+      if errors
+        for error, i in errors
+          div(class="alert alert-danger") #{ error }
+      if successes
+        for success, i in successes
+          div(class="alert alert-success") #{ success }
+      h3 Login
+      p If you are starting a campaign, go to the 
+        a(href="/register") registration 
+        | page. 
+        strong If you are a pollwatcher for a campaign, that campaign's administrator must have invited you 
+        | for you to gain access to the campaign. Once they invite you, you should receive an email to authenticate your account and set your password. If you were invited by an administrator but did not receive this email, click the reset password link below.
+      div.form
+        form.login-form(method="POST" action="/login")
+          input(name="username" type="text" placeholder="user")
+          input(name="password" type="password" placeholder="password")
+          button(type=submit) Login
+          p.message Forgot your password? 
+            a(href="/requestreset") Reset Password
+          p.message Not registered? 
+            a(href="/register") Create an account

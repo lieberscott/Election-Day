@@ -1,0 +1,38 @@
+html
+  head
+    title Every Last Vote GOTV
+    meta(name="description" content="A cool thing made with Glitch")
+    link#favicon(rel="icon" href="https://glitch.com/edit/favicon-app.ico" type="image/x-icon")
+    meta(charset="utf-8")
+    meta(http-equiv="X-UA-Compatible" content="IE=edge")
+    meta(name="viewport" content="width=device-width, initial-scale=1")
+    link(rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css")
+    link(rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous")
+    link(href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet")
+    link(rel="stylesheet" href="/index.css")
+    
+    block extralink
+    
+    script(src="https://code.jquery.com/jquery-3.3.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous")
+    script(src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous")
+    script(src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous")
+    script(src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous")
+
+  
+  body
+    nav.navbar.navbar-expand-md.navbar-light.bg-light.sticky-top
+      a.navbar-brand(href="/#")
+        img.navimg(src="https://cdn.glitch.com/09dc5f50-78d2-4d81-b3b1-48ff5bcabb11%2Fonlinevoting.png?1553627063187" alt="Responsive image")
+      button.navbar-toggler(type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation")
+        span.navbar-toggler-icon
+      div.collapse.navbar-collapse#navbarSupportedContent
+        ul.navbar-nav.mr-auto
+          li.nav-item
+            a.nav-link(href="/#services") Services
+          li.nav-item
+            a.nav-link(href="/#pricing") Pricing
+          li.nav-item
+            a.nav-link(href="/register") Register
+          li.nav-item
+            a.nav-link(href="/login") Login
+    block main

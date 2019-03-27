@@ -76,13 +76,13 @@ module.exports = (app, db) => {
       /
       */
 
-      app.get('/', /* mainpageMiddleware, */ (req, res) => {
-        res.redirect("/login");
+      app.get('/', (req, res) => {
+        res.render(process.cwd() + "/views/pug/index");
         
       });
       
       app.get('/login', loginpageMiddleware, (req, res) => {
-        res.render(process.cwd() + "/views/pug/login.pug");
+        res.render(process.cwd() + "/views/pug/login");
       });
 
       app.post('/login', (req, res, next) => {
@@ -100,7 +100,7 @@ module.exports = (app, db) => {
       });
       
       app.get("/register", (req, res) => {
-        res.render(process.cwd() + "/views/pug/register.pug");
+        res.render(process.cwd() + "/views/pug/register");
       });
       
       app.post("/register", [
@@ -556,7 +556,7 @@ module.exports = (app, db) => {
       
       app.get("/choice", pollwatcherProtectedMiddleware, (req, res) => {
         let admin = req.user.admin;
-        res.render(process.cwd() + "/views/pug/choice.pug", { admin });
+        res.render(process.cwd() + "/views/pug/choice", { admin });
       });
       
       app.get("/watch", pollwatcherProtectedMiddleware, (req, res) => { // pollwatcher watching their location
@@ -564,10 +564,10 @@ module.exports = (app, db) => {
         let admin = req.user.admin;
         
         let database = req.user.database;
-        let precinct = req.user.precinct.toString();
-        let ward = req.user.ward.toString();
+        let precinct = req.user.precinct;
+        let ward = req.user.ward;
 
-        db.collection(database).find( { ward, precinct, voted: "0" }, { sort: { lastname: 1 } }, (err, cursor) => {
+        db.collection(database).find( { ward, precinct, voted: 0 }, { sort: { lastname: 1 } }, (err, cursor) => {
           if (err) {
             console.log(err);
             req.flash("error", "Error retrieving data: Please try again");
@@ -607,7 +607,7 @@ module.exports = (app, db) => {
         else if (time == -5) { t = 12 }
         let date = tempdate[0] + " " + t + ":" + d[1] + ":" + d[2];
         
-        db.collection(database).findOneAndUpdate({ _id: id }, { $set: { voted: "1", enteredBy: pollwatcher, date } }, (err, doc) => {
+        db.collection(database).findOneAndUpdate({ _id: id }, { $set: { voted: 1, enteredBy: pollwatcher, date } }, (err, doc) => {
           if (err) {
             console.log(err);
             req.flash("error", "Unable to count voter. Please try again.");
@@ -737,18 +737,18 @@ module.exports = (app, db) => {
         fs.readdir(directory, (err, files) => {
           if (err) {
             console.log(err);
-            res.render(process.cwd() + "/views/pug/upload.pug", { admin });
+            res.render(process.cwd() + "/views/pug/upload", { admin });
           }
 
           for (const file of files) {
             fs.unlink(path.join(directory, file), err => {
               if (err) {
                 console.log(err);
-                res.render(process.cwd() + "/views/pug/upload.pug", { admin });
+                res.render(process.cwd() + "/views/pug/upload", { admin });
               }
             });
           }
-          res.render(process.cwd() + "/views/pug/upload.pug", { admin });
+          res.render(process.cwd() + "/views/pug/upload", { admin });
         });
         
       });
@@ -759,7 +759,7 @@ module.exports = (app, db) => {
           if (err) {
             console.log(err);
             req.flash("error", err);
-            res.render(process.cwd() + "/views/pug/upload.pug", { admin, errors: req.flash("error") });
+            res.render(process.cwd() + "/views/pug/upload", { admin, errors: req.flash("error") });
           }
           else {
             if (req.file == undefined) {
@@ -769,11 +769,18 @@ module.exports = (app, db) => {
             else {
               const csvFilePath = "public/uploads/" + req.file.filename;
               filename = req.file.filename;
-              csv()
+              csv({
+                colParser: {
+                  van_id: 'number',
+                  ward: 'number',
+                  precinct: 'number',
+                  voted: 'number'
+                }
+              })
               .fromFile(csvFilePath)
               .then((jsonObj)=> {
                 let obj = jsonObj.slice(0, 10);
-                res.render(process.cwd() + "/views/pug/upload.pug", { admin, file: obj });
+                res.render(process.cwd() + "/views/pug/upload", { admin, file: obj });
               });
             }
           }
@@ -786,10 +793,17 @@ module.exports = (app, db) => {
         let database = req.user.database;
 
         const csvFilePath = "public/uploads/" + filename;
-        csv()
+        csv({
+          colParser: {
+            van_id: 'number',
+            ward: 'number',
+            precinct: 'number',
+            voted: 'number'
+          }
+        })
         .fromFile(csvFilePath)
         .then((jsonObj)=> {
-
+          
           if (opt == "override") {
             db.collection(database).remove({}, (err, removed) => {
               if (err) {
@@ -899,7 +913,7 @@ module.exports = (app, db) => {
         let x = db.collection(database).aggregate([
           { $match : { } },
           // sorts by precinct, and gets number who voted and who haven't voted
-          { $group : { _id: "$precinct", voted: { $sum: { $cond: [ { $eq: ["$voted", "1"] }, 1, 0 ] } }, notvoted: { $sum: { $cond: [{ $eq: ["$voted", "1"] }, 0, 1 ] } } } },
+          { $group : { _id: "$precinct", voted: { $sum: { $cond: [ { $eq: ["$voted", 1] }, 1, 0 ] } }, notvoted: { $sum: { $cond: [{ $eq: ["$voted", 1] }, 0, 1 ] } } } },
           { $sort: { _id: 1 } }
         ], (err, cursor) => {
           if (err) {
@@ -1097,11 +1111,12 @@ module.exports = (app, db) => {
       app.get("/view/:precinct", adminProtectedMiddleware, (req, res) => {
         
         // convert param from string into a number
-        let precinct = req.params.precinct;
+        let p = req.params.precinct;
+        let precinct = parseInt(p);
         let database = req.user.database;
         let admin = req.user.admin;
         
-        db.collection(database).find({ precinct }, { sort: { voted: 1, date: -1 } }, (err, cursor) => {
+        db.collection(database).find({ precinct }, { $sort: { voted: 1 } }, (err, cursor) => {
           if (err) {
             req.flash("error", "Unable to fetch data. Please try again.");
             res.redirect("/admin");
@@ -1110,8 +1125,8 @@ module.exports = (app, db) => {
           else {
             let arr = [];
             cursor.toArray()
-              .then((docs) => {
-                arr = docs;
+            .then((docs) => {
+              arr = docs;
               res.render(process.cwd() + '/views/pug/view', { admin, arr });
             });
           }

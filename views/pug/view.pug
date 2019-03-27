@@ -18,7 +18,7 @@ block main
   hr
   each item, i in arr
     div(id="section" + (i + 1))
-      if item.voted == "0"
+      if !item.voted
         div.font-weight-bold
           button.far.fa-times-circle(id=(item._id) data-pollwatcher=pollwatcher)
         div.row
@@ -36,7 +36,7 @@ block main
     div.col-3 Date/Time
   hr
   each item, i in arr
-    if item.voted == "1"
+    if item.voted
       div.row
         div.col-4=item.firstname + " " + item.lastname
         div.col-3=item.address

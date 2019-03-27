@@ -1,30 +1,89 @@
-extends layout.pug
+extends indexlayout.pug
 
-block extralink
-  link(rel="stylesheet" href="/style.css")
-
-block extrascript
-  script(src="https://code.jquery.com/jquery-3.3.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous")
-  script(src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous")
-  script(src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous")
-  script(src="/client.js" defer)
-  
 block main
-  h1 Precinct #{arr[0].precinct}
-  p Voters
-  div.row.font-weight-bold
-    div.col-3 First name
-    div.col-3 Last name
-    div.col-3 Address
-    div.col-3 Phone
-  hr
-  each item, i in arr
-    div(id="section" + (i + 1))
-      div.font-weight-bold
-        button.far.fa-times-circle(id=item._id data-pollwatcher=pollwatcher)
-      div.row
-        div.col-3=item.firstname
-        div.col-3=item.lastname
-        div.col-3=item.address
-        div.col-3=item.phone
+
+  div.top
+    div.row.align-items-center
+      div.col-lg-5.offset-1
+        h4
+          strong Make sure you're getting every vote you should
+        p Identifying supporters is one thing. Getting them to the polls is another. Every Last Vote bridges the gap and helps make sure every ID'd supporter goes to vote.
+        img.logo(src="https://cdn.glitch.com/09dc5f50-78d2-4d81-b3b1-48ff5bcabb11%2Fonlinevoting.png?1553627063187" alt="Responsive image")
+      div.col-lg-5
+        img.center(src="https://cdn.glitch.com/09dc5f50-78d2-4d81-b3b1-48ff5bcabb11%2Fvoterballotnyc.jpg?1553627082897" alt="Responsive image")
+
+
+  div.container.container-fluid
+
+    div#services
+      h3 Services
+
+      div.row.services.align-items-center
+        div.col-md-4
+          div.card
+            div.card-body
+              h5.card-title Get results
+              p.card-text You will have a list, by precinct, of your supporters who have yet to vote. Have phone bankers at your headquarters calling the voters directly to urge them to vote, or have canvassers knock their door directly. Make sure you get 
+                strong Every Last Vote
+                | .
+        div.col-md-8
+          img.img-fluid(src="https://cdn.glitch.com/09dc5f50-78d2-4d81-b3b1-48ff5bcabb11%2Fprecincts.png?1553646607577" alt="Responsive image")
+
+      div.row.services.align-items-center
+        div.col-md-4
+          div.card
+            div.card-body
+              h5.card-title Cross out voters
+              p.card-text Deploy pollwatchers to the polling locations. Once a voter shows up and checks in, have your pollwatcher X them out. They will be counted as voted. Then you can focus on the rest of your list.
+        div.col-md-8
+          img.img-fluid(src="https://cdn.glitch.com/09dc5f50-78d2-4d81-b3b1-48ff5bcabb11%2Fwatch.png?1553646998137" alt="Responsive image")
+
+      div.row.services.align-items-center
+        div.col-md-4
+          div.card
+            div.card-body
+              h5.card-title Organize pollwatchers
+              p.card-text Have all your volunteer pollwatchers organized by precinct, with contact information, all in one convenient spot, and easily make changes as they come up.
+        div.col-md-8
+          img.img-fluid(src="https://cdn.glitch.com/09dc5f50-78d2-4d81-b3b1-48ff5bcabb11%2Fpollwatchers.png?1553648465780" alt="Responsive image")
+
+      div.row.services.align-items-center
+        div.col-md-4
+          div.card
+            div.card-body
+              h5.card-title Get vote totals
+              p.card-text Polling locations keep a running tally of the day's vote totals. Having your volunteer pollwatchers report those numbers throughout the day gives you the power to deploy volunteers to high-traffic polling locations to hold signs and hand out palm cards. Then, your volunteer pollwatchers can report the returns when they're posted after polls close, so you get them instantly.
+        div.col-md-8
+          img.img-fluid(src="https://cdn.glitch.com/09dc5f50-78d2-4d81-b3b1-48ff5bcabb11%2Felectionresults.png?1553648900426" alt="Responsive image")
     hr
+
+    div#pricing
+      h3 Pricing
+      p For a limited time, and for the Chicago municipal runoff election, we are making our app free for one ward per campaign!
+      table.table
+        thead
+          tr
+            th(scope="col") Maximum number of registered voters
+            th(scope="col") Volunteer logins
+            th(scope="col") Competitor*
+            th.green(scope="col") Every Last Vote App!
+        tbody
+          tr
+            th(scope="row") 75,000
+            td 50
+            td $1,495
+            td.green Free! (for a limited time)
+          tr
+            th(scope="row") 150,000
+            td 75
+            td $2,295
+            td.green $200 (for a limited time)
+          tr
+            th(scope="row") 250,000
+            td 100
+            td $2,995
+            td.green $400 (for a limited time)
+      small *Strike List GOTV App
+
+      h3 Ready to try it?
+      p Email everylastvote@gmail.com or call Scott Lieber at 708-622-5984
