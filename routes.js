@@ -246,7 +246,7 @@ module.exports = (app, db) => {
                     .catch((catch_err) => {
                       console.log(catch_err);
                       req.flash("error", "There was an error with your registration. Please contact support for help.");
-                      res.render("/register", { errors: req.flash("error") });
+                      res.render(process.cwd() + "/views/pug/register", { errors: req.flash("error") });
                     });
                   };
                 })
