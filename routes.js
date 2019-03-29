@@ -182,7 +182,7 @@ module.exports = (app, db) => {
                     .then(async (result) => {
                       
                       // send verification email
-                      const html = '<p>Hi ' + user_first + ',</p><p>Thank you for signing up with Turnout the Vote!</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://election-day3.glitch.me/verify/' + verification_token + '/' + email + '">https://election-day3.glitch.me/verify/' + verification_token + '/' + email + '</a></p><p> Have a pleasant day!</p>';
+                      const html = '<p>Hi ' + user_first + ',</p><p>Thank you for signing up with Turnout the Vote!</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://everylastvote.glitch.me/verify/' + verification_token + '/' + email + '">https://everylastvote.glitch.me/verify/' + verification_token + '/' + email + '</a></p><p> Have a pleasant day!</p>';
                       try {
                         await sendEmail("robot@voterturnout.com", email, "Please verify your account", html);
                       }
@@ -321,7 +321,7 @@ module.exports = (app, db) => {
             .then(async () => {
               let user_first = user.user_first;
 
-              const html = '<p>Hi ' + user_first + ',</p><p>A password reset was recently requested for this email address</p><p>To change your password, use the following link:</p><p><a href="https://election-day3.glitch.me/resetpassword/' + token + '">https://election-day3.glitch.me/resetpassword/' + token + '"</a>.</p><p>If you didn\'t make this request, you can ignore this message and your password will remain unchanged.</p><p>Have a pleasant day!</p>';
+              const html = '<p>Hi ' + user_first + ',</p><p>A password reset was recently requested for this email address</p><p>To change your password, use the following link:</p><p><a href="https://everylastvote.glitch.me/resetpassword/' + token + '">https://everylastvote.glitch.me/resetpassword/' + token + '"</a>.</p><p>If you didn\'t make this request, you can ignore this message and your password will remain unchanged.</p><p>Have a pleasant day!</p>';
               
               try {
                 await sendEmail("robot@voterturnout.com", email, "Your password reset request", html);
@@ -1019,7 +1019,7 @@ module.exports = (app, db) => {
           
           else { // no errors
             
-            const html = '<p>Hi ' + user_first + ',</p><p>You have been requested to join the ' + public_name + ' campaign.</p><p>Your token is ' + token + '</p><p>Use the following link to create an account and complete your registration:</p><p><a href="https://election-day3.glitch.me/pollwatcherconfirm">https://election-day3.glitch.me/pollwatcherconfirm</a></p><p>Have a pleasant day!</p>';
+            const html = '<p>Hi ' + user_first + ',</p><p>You have been requested to join the ' + public_name + ' campaign.</p><p>Your token is ' + token + '</p><p>Use the following link to create an account and complete your registration:</p><p><a href="https://everylastvote.glitch.me/pollwatcherconfirm">https://everylastvote.glitch.me/pollwatcherconfirm</a></p><p>Have a pleasant day!</p>';
             
             try {
               await sendEmail("robot@voterturnout.com", email, "Please verify your account", html);
@@ -1262,7 +1262,7 @@ module.exports = (app, db) => {
           user.verification_token = verification_token;
           user.save();
           
-          const html = '<p>Hi ' + user_first + ',</p><p>A request was made to resend a verification token for your account.</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://election-day3.glitch.me/verify/' + verification_token + '/' + email + '">https://election-day3.glitch.me/verify/' + verification_token + '/' + email + '</a></p><p> Have a pleasant day!</p>';
+          const html = '<p>Hi ' + user_first + ',</p><p>A request was made to resend a verification token for your account.</p><p>Please verify your email address by clicking the following link:</p><p><a href="https://everylastvote.glitch.me/verify/' + verification_token + '/' + email + '">https://everylastvote.glitch.me/verify/' + verification_token + '/' + email + '</a></p><p> Have a pleasant day!</p>';
           
           try {
             await sendEmail("robot@voterturnout.com", email, "Please verify your account", html);
@@ -1403,7 +1403,7 @@ const adminMiddleware = (req, res, next) => { // for /payment
 const checkValidationResult = (req, res, next) => {
   const result = validationResult(req);
   const referer = req.headers.referer;
-  let url = referer.split("https://election-day3.glitch.me")[1];
+  let url = referer.split("https://everylastvote.glitch.me")[1];
 
   if (result.isEmpty()) {
       return next();
